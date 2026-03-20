@@ -1,0 +1,305 @@
+<div class="reports-container">
+  <div class="header-section">
+    <button class="back-btn" (click)="goBack()" title="Назад">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <h1 class="page-title">ОТЧЁТЫ</h1>
+    <a class="schedule-link" (click)="onScheduleSettings()">Настроить общее расписание отчётов</a>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка отчётов...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+      <button class="retry-btn" (click)="retry()">Повторить</button>
+    </div>
+  } @else if (isEmpty()) {
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="28" cy="28" r="18" stroke="#ccc" stroke-width="3"/>
+          <path d="M41 41L54 54" stroke="#ccc" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p class="empty-title">Пу-пу-пустота....</p>
+      <p class="empty-hint">Добавьте отчёт в систему</p>
+      <button class="add-report-btn" (click)="onAddReport()">Добавить отчёт</button>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <button class="add-report-btn" (click)="onAddReport()">Добавить отчёт</button>
+    </div>
+
+    <div class="reports-list">
+      @for (group of groupedReports(); track trackByGroupType($index, group)) {
+        <div class="report-group">
+          <h2 class="group-title">{{ group.label }}</h2>
+          <div class="group-reports">
+            @for (report of group.reports; track trackByReportId($index, report)) {
+              <div class="report-card">
+                <div class="report-info">
+                  <span class="report-name">{{ report.name }}</span>
+                  <span class="status-badge" [ngClass]="getScheduleStatusClass(report.schedule_type)">
+                    {{ getScheduleStatusText(report.schedule_type) }}
+                  </span>
+                </div>
+                <div class="report-actions">
+                  <button class="action-btn configure-btn" (click)="onConfigureReport(report)">Настроить</button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Schedule modal -->
+  @if (showScheduleModal()) {
+    <div class="modal-overlay" (click)="closeScheduleModal()" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
+      <div class="modal-content schedule-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2 class="modal-title" id="schedule-modal-title">Настройка общего расписания</h2>
+          <button class="modal-close" (click)="closeScheduleModal()" title="Закрыть">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          @if (scheduleLoading()) {
+            <div class="modal-loading">
+              <div class="spinner"></div>
+              <p>Загрузка расписания...</p>
+            </div>
+          } @else {
+            @if (scheduleError()) {
+              <div class="schedule-error">
+                {{ scheduleError() }}
+              </div>
+            }
+
+            <div class="schedule-form">
+              <div class="schedule-row">
+                <div class="schedule-field">
+                  <label class="schedule-label">Тип рассылки</label>
+                  <select
+                    class="schedule-select"
+                    [value]="scheduleFrequency()"
+                    (change)="onFrequencyChange($event)"
+                    [disabled]="scheduleSaving()"
+                  >
+                    @for (opt of frequencyOptions; track opt.value) {
+                      <option [value]="opt.value">{{ opt.label }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="schedule-field">
+                  <label class="schedule-label">Часовой пояс</label>
+                  <select
+                    class="schedule-select"
+                    [value]="scheduleTimezone()"
+                    (change)="onTimezoneChange($event)"
+                    [disabled]="scheduleSaving()"
+                  >
+                    @for (tz of timezoneOptions; track tz.value) {
+                      <option [value]="tz.value">{{ tz.label }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+
+              <div class="schedule-row">
+                @if (scheduleFrequency() === 'weekly') {
+                  <div class="schedule-field">
+                    <label class="schedule-label">День недели</label>
+                    <select
+                      class="schedule-select"
+                      [value]="scheduleWeekday()"
+                      (change)="onWeekdayChange($event)"
+                      [disabled]="scheduleSaving()"
+                    >
+                      @for (day of weekdayOptions; track day.value) {
+                        <option [value]="day.value">{{ day.label }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+
+                @if (scheduleFrequency() === 'monthly') {
+                  <div class="schedule-field">
+                    <label class="schedule-label">Число месяца</label>
+                    <input
+                      type="number"
+                      class="schedule-input"
+                      [value]="scheduleDayOfMonth()"
+                      (input)="onDayOfMonthChange($event)"
+                      min="1"
+                      max="31"
+                      placeholder="1-31"
+                      [disabled]="scheduleSaving()"
+                    />
+                  </div>
+                }
+
+                <div class="schedule-field">
+                  <label class="schedule-label">Данные за период</label>
+                  <input
+                    type="number"
+                    class="schedule-input"
+                    [value]="scheduleDataPeriod()"
+                    (input)="onDataPeriodChange($event)"
+                    min="1"
+                    max="365"
+                    [disabled]="scheduleSaving()"
+                  />
+                </div>
+              </div>
+
+              <div class="schedule-row schedule-row-center">
+                <div class="schedule-field">
+                  <label class="schedule-label">Время</label>
+                  <input
+                    type="time"
+                    class="schedule-input"
+                    [value]="scheduleTime()"
+                    (input)="onTimeChange($event)"
+                    [disabled]="scheduleSaving()"
+                  />
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (!scheduleLoading()) {
+          <div class="modal-footer">
+            <button
+              class="submit-btn"
+              [disabled]="scheduleSaving()"
+              (click)="saveSchedule()"
+            >
+              {{ scheduleSaving() ? 'Сохранение...' : 'Сохранить' }}
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Modal for adding reports -->
+  @if (showModal()) {
+    <div class="modal-overlay" (click)="closeModal()" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-title">Отчёты базы</h2>
+          <button class="modal-close" (click)="closeModal()" title="Закрыть">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-search-section">
+          <div class="modal-search-wrapper">
+            <svg class="modal-search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 19L14.65 14.65" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <input
+              type="text"
+              class="modal-search-input"
+              placeholder="Поиск отчётов..."
+              [value]="searchQuery()"
+              (input)="onSearchChange($event)"
+              aria-label="Поиск отчётов"
+            />
+          </div>
+        </div>
+
+        <div class="modal-body">
+          @if (modalLoading()) {
+            <div class="modal-loading">
+              <div class="spinner"></div>
+              <p>Загрузка отчётов...</p>
+            </div>
+          } @else if (modalError()) {
+            <div class="modal-error">
+              <p>{{ modalError() }}</p>
+            </div>
+          } @else if (groupedIikoReports().length === 0) {
+            <div class="modal-empty">
+              <p>Нет доступных отчётов</p>
+            </div>
+          } @else {
+            <div class="report-groups-list">
+              @for (group of groupedIikoReports(); track trackByIikoGroupType($index, group)) {
+                <div class="modal-report-group">
+                  <button
+                    class="group-header"
+                    [class.expanded]="group.expanded"
+                    (click)="toggleGroup(group)"
+                  >
+                    <span class="group-header-label">{{ group.label }}</span>
+                    <svg
+                      class="group-arrow"
+                      [class.rotated]="group.expanded"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+
+                  @if (group.expanded) {
+                    <div class="group-items">
+                      @for (report of group.reports; track trackByIikoReportId($index, report)) {
+                        <div class="report-item" (click)="toggleReportSelection(report.id)">
+                          <span class="report-item-name">{{ report.name }}</span>
+                          <button
+                            class="selection-circle"
+                            [class.selected]="isReportSelected(report.id)"
+                            type="button"
+                          >
+                            @if (isReportSelected(report.id)) {
+                              <span class="selection-number">{{ getSelectionNumber(report.id) }}</span>
+                            }
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button
+            class="submit-btn"
+            [disabled]="selectedCount() === 0 || submitting()"
+            (click)="submitSelectedReports()"
+          >
+            @if (submitting()) {
+              <span>Добавление...</span>
+            } @else {
+              <span>Добавить отчёты ({{ selectedCount() }})</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,441 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { AdminLicensesComponent } from './admin-licenses.component';
+import { AdminService } from '../../../core/api/admin.service';
+import { Router } from '@angular/router';
+import { of, throwError } from 'rxjs';
+import { License } from '../../../core/api/models/admin.models';
+
+describe('AdminLicensesComponent', () => {
+  let component: AdminLicensesComponent;
+  let fixture: ComponentFixture<AdminLicensesComponent>;
+  let adminServiceSpy: jasmine.SpyObj<AdminService>;
+  let routerSpy: jasmine.SpyObj<Router>;
+
+  const mockLicenses: License[] = [
+    {
+      id: 1,
+      user_id: 1,
+      rms_id: 'RMS-001',
+      contract_num: 'CONTRACT-001',
+      expiration_date: '2026-12-31',
+      comment: 'Premium license for user 1',
+      plan: 'Premium'
+    },
+    {
+      id: 2,
+      user_id: 2,
+      rms_id: null,
+      contract_num: 'CONTRACT-002',
+      expiration_date: '2026-04-15',
+      comment: null,
+      plan: 'Basic'
+    },
+    {
+      id: 3,
+      user_id: 3,
+      rms_id: 'RMS-003',
+      contract_num: null,
+      expiration_date: '2025-01-01',
+      comment: 'Expired license',
+      plan: 'Trial'
+    }
+  ];
+
+  beforeEach(async () => {
+    const adminServiceSpyObj = jasmine.createSpyObj('AdminService', ['getAllLicenses']);
+    const routerSpyObj = jasmine.createSpyObj('Router', ['navigate']);
+
+    await TestBed.configureTestingModule({
+      imports: [AdminLicensesComponent],
+      providers: [
+        { provide: AdminService, useValue: adminServiceSpyObj },
+        { provide: Router, useValue: routerSpyObj }
+      ]
+    }).compileComponents();
+
+    adminServiceSpy = TestBed.inject(AdminService) as jasmine.SpyObj<AdminService>;
+    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+
+    fixture = TestBed.createComponent(AdminLicensesComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  describe('ngOnInit and loadLicenses', () => {
+    it('should load licenses on initialization', (done) => {
+      adminServiceSpy.getAllLicenses.and.returnValue(of(mockLicenses));
+
+      fixture.detectChanges(); // triggers ngOnInit
+
+      setTimeout(() => {
+        expect(adminServiceSpy.getAllLicenses).toHaveBeenCalled();
+        expect(component['licenses']().length).toBe(3);
+        expect(component['loading']()).toBeFalse();
+        expect(component['error']()).toBeNull();
+        done();
+      }, 10);
+    });
+
+    it('should set loading state during data fetch', () => {
+      adminServiceSpy.getAllLicenses.and.returnValue(of(mockLicenses));
+
+      expect(component['loading']()).toBeTrue();
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['loading']()).toBeFalse();
+      }, 10);
+    });
+
+    it('should handle error when loading licenses fails', (done) => {
+      const error = new Error('Network error');
+      adminServiceSpy.getAllLicenses.and.returnValue(throwError(() => error));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Не удалось загрузить лицензии');
+        expect(component['loading']()).toBeFalse();
+        expect(component['licenses']().length).toBe(0);
+        done();
+      }, 10);
+    });
+
+    it('should handle empty licenses array', (done) => {
+      adminServiceSpy.getAllLicenses.and.returnValue(of([]));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['licenses']().length).toBe(0);
+        expect(component['loading']()).toBeFalse();
+        done();
+      }, 10);
+    });
+  });
+
+  describe('Search filtering', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getAllLicenses.and.returnValue(of(mockLicenses));
+      fixture.detectChanges();
+      setTimeout(done, 50);
+    });
+
+    it('should filter licenses by ID', () => {
+      component['onSearchChange']('1');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].id).toBe(1);
+    });
+
+    it('should filter licenses by user_id', () => {
+      component['onSearchChange']('2');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].user_id).toBe(2);
+    });
+
+    it('should filter licenses by plan (case insensitive)', () => {
+      component['onSearchChange']('premium');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].plan).toBe('Premium');
+    });
+
+    it('should filter licenses by partial plan match', () => {
+      component['onSearchChange']('bas');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].plan).toBe('Basic');
+    });
+
+    it('should filter licenses by comment', () => {
+      component['onSearchChange']('Expired');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].comment).toBe('Expired license');
+    });
+
+    it('should handle null comments in search', () => {
+      component['onSearchChange']('nullcomment');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(0);
+    });
+
+    it('should return all licenses when search query is empty', () => {
+      component['onSearchChange']('');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(3);
+    });
+
+    it('should return empty array when no licenses match search', () => {
+      component['onSearchChange']('nonexistent');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(0);
+    });
+
+    it('should trim search query before filtering', () => {
+      component['onSearchChange']('  premium  ');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(1);
+    });
+
+    it('should filter by multiple matching fields', () => {
+      component['onSearchChange']('1');
+      const filtered = component['filteredLicenses']();
+      // Should match license id 1 and user_id 1
+      expect(filtered.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Sorting by expiration date', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getAllLicenses.and.returnValue(of(mockLicenses));
+      fixture.detectChanges();
+      setTimeout(done, 50);
+    });
+
+    it('should sort licenses by expiration date ascending by default', () => {
+      const filtered = component['filteredLicenses']();
+      expect(filtered[0].expiration_date).toBe('2025-01-01');
+      expect(filtered[1].expiration_date).toBe('2026-04-15');
+      expect(filtered[2].expiration_date).toBe('2026-12-31');
+    });
+
+    it('should sort licenses by expiration date descending when toggled', () => {
+      component['toggleSort']();
+      const filtered = component['filteredLicenses']();
+      expect(filtered[0].expiration_date).toBe('2026-12-31');
+      expect(filtered[1].expiration_date).toBe('2026-04-15');
+      expect(filtered[2].expiration_date).toBe('2025-01-01');
+    });
+
+    it('should toggle between ascending and descending', () => {
+      expect(component['sortAsc']()).toBeTrue();
+      component['toggleSort']();
+      expect(component['sortAsc']()).toBeFalse();
+      component['toggleSort']();
+      expect(component['sortAsc']()).toBeTrue();
+    });
+
+    it('should create new array when sorting (immutability)', () => {
+      const before = component['filteredLicenses']();
+      component['toggleSort']();
+      const after = component['filteredLicenses']();
+      expect(before).not.toBe(after);
+    });
+
+    it('should maintain sort order after search', () => {
+      component['onSearchChange']('contract');
+      component['toggleSort']();
+      const filtered = component['filteredLicenses']();
+
+      if (filtered.length > 1) {
+        const date1 = new Date(filtered[0].expiration_date).getTime();
+        const date2 = new Date(filtered[1].expiration_date).getTime();
+        expect(date1).toBeGreaterThanOrEqual(date2);
+      }
+    });
+  });
+
+  describe('formatDate', () => {
+    it('should format date in Russian locale (DD.MM.YYYY)', () => {
+      const formatted = component['formatDate']('2026-12-31');
+      expect(formatted).toBe('31.12.2026');
+    });
+
+    it('should handle different date formats', () => {
+      const formatted1 = component['formatDate']('2026-01-01');
+      expect(formatted1).toBe('01.01.2026');
+
+      const formatted2 = component['formatDate']('2026-06-15');
+      expect(formatted2).toBe('15.06.2026');
+    });
+
+    it('should format dates with leading zeros', () => {
+      const formatted = component['formatDate']('2026-03-05');
+      expect(formatted).toBe('05.03.2026');
+    });
+  });
+
+  describe('isExpired', () => {
+    it('should return true for dates in the past', () => {
+      const pastDate = '2020-01-01';
+      expect(component['isExpired'](pastDate)).toBeTrue();
+    });
+
+    it('should return false for dates in the future', () => {
+      const futureDate = '2030-12-31';
+      expect(component['isExpired'](futureDate)).toBeFalse();
+    });
+
+    it('should return false for today', () => {
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
+      expect(component['isExpired'](todayString)).toBeFalse();
+    });
+
+    it('should correctly identify expired license from mock data', () => {
+      expect(component['isExpired']('2025-01-01')).toBeTrue();
+    });
+
+    it('should correctly identify non-expired license from mock data', () => {
+      expect(component['isExpired']('2026-12-31')).toBeFalse();
+    });
+  });
+
+  describe('isExpiringSoon', () => {
+    it('should return true for dates within 30 days from now', () => {
+      const date = new Date();
+      date.setDate(date.getDate() + 15);
+      const dateString = date.toISOString().split('T')[0];
+      expect(component['isExpiringSoon'](dateString)).toBeTrue();
+    });
+
+    it('should return false for dates more than 30 days from now', () => {
+      const date = new Date();
+      date.setDate(date.getDate() + 60);
+      const dateString = date.toISOString().split('T')[0];
+      expect(component['isExpiringSoon'](dateString)).toBeFalse();
+    });
+
+    it('should return false for dates in the past (expired)', () => {
+      const date = new Date();
+      date.setDate(date.getDate() - 10);
+      const dateString = date.toISOString().split('T')[0];
+      expect(component['isExpiringSoon'](dateString)).toBeFalse();
+    });
+
+    it('should return true for date exactly 30 days from now', () => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30);
+      const dateString = date.toISOString().split('T')[0];
+      expect(component['isExpiringSoon'](dateString)).toBeTrue();
+    });
+
+    it('should return true for today (0 days remaining)', () => {
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
+      expect(component['isExpiringSoon'](todayString)).toBeTrue();
+    });
+
+    it('should return false for date exactly 31 days from now', () => {
+      const date = new Date();
+      date.setDate(date.getDate() + 31);
+      const dateString = date.toISOString().split('T')[0];
+      expect(component['isExpiringSoon'](dateString)).toBeFalse();
+    });
+  });
+
+  describe('trackByLicenseId', () => {
+    it('should return license ID', () => {
+      const result = component['trackByLicenseId'](0, mockLicenses[0]);
+      expect(result).toBe(1);
+    });
+
+    it('should return different IDs for different licenses', () => {
+      expect(component['trackByLicenseId'](0, mockLicenses[0])).toBe(1);
+      expect(component['trackByLicenseId'](1, mockLicenses[1])).toBe(2);
+      expect(component['trackByLicenseId'](2, mockLicenses[2])).toBe(3);
+    });
+  });
+
+  describe('onLicenseClick', () => {
+    it('should navigate to license settings page with user ID', () => {
+      component['onLicenseClick'](mockLicenses[0]);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin/licenses', 1]);
+    });
+
+    it('should navigate with correct user ID for different licenses', () => {
+      component['onLicenseClick'](mockLicenses[1]);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin/licenses', 2]);
+
+      component['onLicenseClick'](mockLicenses[2]);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin/licenses', 3]);
+    });
+  });
+
+  describe('Integration: filtering and sorting together', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getAllLicenses.and.returnValue(of(mockLicenses));
+      fixture.detectChanges();
+      setTimeout(done, 50);
+    });
+
+    it('should apply both search and sort correctly', () => {
+      component['onSearchChange']('contract');
+      component['toggleSort']();
+      const filtered = component['filteredLicenses']();
+
+      expect(filtered.length).toBeGreaterThan(0);
+      filtered.forEach(license => {
+        expect(license.contract_num).not.toBeNull();
+      });
+
+      // Check descending order
+      if (filtered.length > 1) {
+        for (let i = 0; i < filtered.length - 1; i++) {
+          const date1 = new Date(filtered[i].expiration_date).getTime();
+          const date2 = new Date(filtered[i + 1].expiration_date).getTime();
+          expect(date1).toBeGreaterThanOrEqual(date2);
+        }
+      }
+    });
+
+    it('should handle search with no results after sorting', () => {
+      component['toggleSort']();
+      component['onSearchChange']('nonexistentplan');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(0);
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should handle licenses with all null optional fields', (done) => {
+      const licenseWithNulls: License = {
+        id: 99,
+        user_id: 99,
+        rms_id: null,
+        contract_num: null,
+        expiration_date: '2026-12-31',
+        comment: null,
+        plan: 'Free'
+      };
+
+      adminServiceSpy.getAllLicenses.and.returnValue(of([licenseWithNulls]));
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        const licenses = component['licenses']();
+        expect(licenses[0].rms_id).toBeNull();
+        expect(licenses[0].contract_num).toBeNull();
+        expect(licenses[0].comment).toBeNull();
+        done();
+      }, 10);
+    });
+
+    it('should handle very long plan names in search', () => {
+      const longPlan: License = {
+        ...mockLicenses[0],
+        plan: 'VeryLongPlanNameThatShouldStillBeSearchable'
+      };
+
+      adminServiceSpy.getAllLicenses.and.returnValue(of([longPlan]));
+      fixture.detectChanges();
+
+      component['onSearchChange']('VeryLong');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBe(1);
+    });
+
+    it('should handle special characters in search', () => {
+      component['onSearchChange']('CONTRACT-001');
+      const filtered = component['filteredLicenses']();
+      expect(filtered.length).toBeGreaterThanOrEqual(0);
+    });
+  });
+});

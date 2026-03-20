@@ -1,0 +1,397 @@
+<div class="settings-container">
+  <div class="header-section">
+    <button class="back-btn" (click)="goBack()" title="Назад">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    @if (loading()) {
+      <h1 class="page-title">Загрузка...</h1>
+    } @else if (report()) {
+      <h1 class="page-title">{{ report()!.name }}</h1>
+    } @else {
+      <h1 class="page-title">Настройки отчёта</h1>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка настроек отчёта...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+      <button class="retry-btn" (click)="retry()">Повторить</button>
+    </div>
+  } @else if (report()) {
+    <div class="settings-content">
+      <div class="action-buttons">
+        <button
+          class="save-settings-btn"
+          (click)="saveSettings()"
+          [disabled]="saving() || !hasUnsavedChanges()"
+        >
+          {{ saving() ? 'Сохранение...' : 'Сохранить' }}
+        </button>
+        <button
+          class="update-structure-btn"
+          (click)="onUpdateStructure()"
+          [disabled]="updating()"
+        >
+          Обновить структуру
+        </button>
+        <button
+          class="delete-report-btn"
+          (click)="onDeleteReport()"
+          [disabled]="updating()"
+        >
+          Удалить отчёт
+        </button>
+      </div>
+
+      <div class="main-settings-block">
+        <div class="settings-rows">
+          <div class="settings-row">
+            <span class="settings-label">Формат рассылки</span>
+            <select
+              class="settings-select"
+              [value]="selectedFormat()"
+              (change)="onFormatChange($event)"
+              [disabled]="saving()"
+            >
+              <option value="pdf">PDF</option>
+              <option value="xlsx" disabled>XLSX (скоро)</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <span class="settings-label">Рассылка в</span>
+            <div class="settings-select-wrapper">
+              <select
+                class="settings-select"
+                [value]="selectedDeliveryType()"
+                (change)="onDeliveryTypeChange($event)"
+                [disabled]="saving()"
+              >
+                <option value="telegram">Telegram</option>
+                <option value="email">Email</option>
+              </select>
+              @if (showEmailHint()) {
+                <span class="email-hint">Скоро появится</span>
+              }
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <span class="settings-label">Тип рассылки</span>
+            <select
+              class="settings-select"
+              [value]="selectedScheduleType() || 'null'"
+              (change)="onScheduleTypeChange($event)"
+              [disabled]="saving()"
+            >
+              <option value="global">Общее расписание</option>
+              <option value="individual">Индивидуальное расписание</option>
+              <option value="null">Отключить</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      @if (showIndividualSchedule()) {
+        <div class="individual-schedule-block">
+          <h3 class="block-title">Настройка индивидуального расписания</h3>
+
+          @if (individualScheduleLoading()) {
+            <div class="schedule-loading">
+              <div class="spinner"></div>
+              <p>Загрузка расписания...</p>
+            </div>
+          } @else {
+            @if (individualScheduleError()) {
+              <div class="schedule-error">
+                <p>{{ individualScheduleError() }}</p>
+              </div>
+            }
+
+            <div class="schedule-fields-grid">
+              <div class="schedule-field-item">
+                <label class="field-label">Тип рассылки</label>
+                <select
+                  class="field-input"
+                  [value]="individualFrequency()"
+                  (change)="onIndividualFrequencyChange($event)"
+                  [disabled]="individualScheduleSaving()"
+                >
+                  @for (option of frequencyOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="schedule-field-item">
+                <label class="field-label">Время</label>
+                <input
+                  type="time"
+                  class="field-input"
+                  [value]="individualTime()"
+                  (change)="onIndividualTimeChange($event)"
+                  [disabled]="individualScheduleSaving()"
+                />
+              </div>
+
+              @if (individualFrequency() === 'weekly') {
+                <div class="schedule-field-item">
+                  <label class="field-label">День недели</label>
+                  <select
+                    class="field-input"
+                    [value]="individualWeekday()"
+                    (change)="onIndividualWeekdayChange($event)"
+                    [disabled]="individualScheduleSaving()"
+                  >
+                    @for (option of weekdayOptions; track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                </div>
+              }
+
+              @if (individualFrequency() === 'monthly') {
+                <div class="schedule-field-item">
+                  <label class="field-label">День месяца</label>
+                  <input
+                    type="number"
+                    class="field-input"
+                    [value]="individualDayOfMonth()"
+                    (change)="onIndividualDayOfMonthChange($event)"
+                    min="1"
+                    max="31"
+                    [disabled]="individualScheduleSaving()"
+                  />
+                </div>
+              }
+
+              <div class="schedule-field-item">
+                <label class="field-label">Данные за период (дни)</label>
+                <input
+                  type="number"
+                  class="field-input"
+                  [value]="individualDataPeriod()"
+                  (change)="onIndividualDataPeriodChange($event)"
+                  min="1"
+                  max="365"
+                  [disabled]="individualScheduleSaving()"
+                />
+              </div>
+
+              <div class="schedule-field-item">
+                <label class="field-label">Часовой пояс</label>
+                <select
+                  class="field-input"
+                  [value]="individualTimezone()"
+                  (change)="onIndividualTimezoneChange($event)"
+                  [disabled]="individualScheduleSaving()"
+                >
+                  @for (tz of timezoneOptions; track tz.value) {
+                    <option [value]="tz.value">{{ tz.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <button
+              class="save-schedule-btn"
+              (click)="saveSchedule()"
+              [disabled]="individualScheduleSaving()"
+            >
+              {{ individualScheduleSaving() ? 'Сохранение...' : 'Сохранить расписание' }}
+            </button>
+          }
+        </div>
+      }
+
+      <div class="group-schedule-block">
+        <div class="group-checkbox-row">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              class="checkbox-input"
+              [checked]="sendToGroups()"
+              (change)="onSendToGroupsChange($event)"
+            />
+            <span class="checkbox-text">Рассылать в группы</span>
+          </label>
+        </div>
+
+        @if (linkedChatsLoading()) {
+          <div class="schedule-loading">
+            <div class="spinner"></div>
+            <p>Загрузка групп...</p>
+          </div>
+        }
+
+        @if (linkedChatsError()) {
+          <div class="schedule-error">
+            <p>{{ linkedChatsError() }}</p>
+          </div>
+        }
+
+        @if (hasNoGroups()) {
+          <div class="no-groups-message">
+            <p>У вас нет групповых чатов, куда добавлен бот</p>
+          </div>
+        }
+
+        @if (showGroupSchedule()) {
+          <div class="group-settings-panel">
+            <h3 class="block-title">Настройка расписания для группы</h3>
+
+            <div class="group-select-wrapper">
+              <label class="field-label">Выберите группу</label>
+              <select
+                class="field-input"
+                [value]="selectedLinkedChatId()"
+                (change)="onGroupChatChange($event)"
+                [disabled]="groupScheduleSaving()"
+              >
+                @for (chat of linkedChats(); track chat.id) {
+                  <option [value]="chat.id">{{ chat.group_name }}</option>
+                }
+              </select>
+            </div>
+
+            @if (groupScheduleLoading()) {
+              <div class="schedule-loading">
+                <div class="spinner"></div>
+                <p>Загрузка расписания...</p>
+              </div>
+            } @else {
+              @if (groupScheduleError()) {
+                <div class="schedule-error">
+                  <p>{{ groupScheduleError() }}</p>
+                </div>
+              }
+
+              <div class="schedule-fields-grid">
+                <div class="schedule-field-item">
+                  <label class="field-label">Тип рассылки</label>
+                  <select
+                    class="field-input"
+                    [value]="groupFrequency()"
+                    (change)="onGroupFrequencyChange($event)"
+                    [disabled]="groupScheduleSaving()"
+                  >
+                    @for (option of frequencyOptions; track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="schedule-field-item">
+                  <label class="field-label">Время</label>
+                  <input
+                    type="time"
+                    class="field-input"
+                    [value]="groupTime()"
+                    (change)="onGroupTimeChange($event)"
+                    [disabled]="groupScheduleSaving()"
+                  />
+                </div>
+
+                @if (groupFrequency() === 'weekly') {
+                  <div class="schedule-field-item">
+                    <label class="field-label">День недели</label>
+                    <select
+                      class="field-input"
+                      [value]="groupWeekday()"
+                      (change)="onGroupWeekdayChange($event)"
+                      [disabled]="groupScheduleSaving()"
+                    >
+                      @for (option of weekdayOptions; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+
+                @if (groupFrequency() === 'monthly') {
+                  <div class="schedule-field-item">
+                    <label class="field-label">День месяца</label>
+                    <input
+                      type="number"
+                      class="field-input"
+                      [value]="groupDayOfMonth()"
+                      (change)="onGroupDayOfMonthChange($event)"
+                      min="1"
+                      max="31"
+                      [disabled]="groupScheduleSaving()"
+                    />
+                  </div>
+                }
+
+                <div class="schedule-field-item">
+                  <label class="field-label">Данные за период (дни)</label>
+                  <input
+                    type="number"
+                    class="field-input"
+                    [value]="groupDataPeriod()"
+                    (change)="onGroupDataPeriodChange($event)"
+                    min="1"
+                    max="365"
+                    [disabled]="groupScheduleSaving()"
+                  />
+                </div>
+
+                <div class="schedule-field-item">
+                  <label class="field-label">Часовой пояс</label>
+                  <select
+                    class="field-input"
+                    [value]="groupTimezone()"
+                    (change)="onGroupTimezoneChange($event)"
+                    [disabled]="groupScheduleSaving()"
+                  >
+                    @for (tz of timezoneOptions; track tz.value) {
+                      <option [value]="tz.value">{{ tz.label }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+
+              <button
+                class="save-schedule-btn"
+                (click)="saveGroupSchedule()"
+                [disabled]="groupScheduleSaving()"
+              >
+                {{ groupScheduleSaving() ? 'Сохранение...' : 'Сохранить расписание' }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="triggers-block">
+        <div class="triggers-header">
+          <div class="triggers-title-row">
+            <span class="triggers-title">Триггеры для уведомлений</span>
+            <span class="soon-badge">SOON</span>
+          </div>
+          <svg class="arrow-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="triggers-description">
+          Настройте автоматические действия при выполнении условий.
+        </p>
+        <button
+          class="feature-request-btn"
+          (click)="onFeatureRequest()"
+          [disabled]="featureRequested()"
+        >
+          {{ featureRequested() ? '✅ Спасибо! Мы учтём ваш запрос.' : 'Хочу такую функцию' }}
+        </button>
+      </div>
+    </div>
+  }
+</div>

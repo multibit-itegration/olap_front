@@ -1,0 +1,81 @@
+<div class="admin-layout">
+  <header class="admin-header">
+    <div class="header-content">
+      <div class="logo">OLAP SENDER</div>
+      <nav class="nav-tabs nav-tabs-desktop">
+        <a
+          routerLink="/admin/users"
+          routerLinkActive="active"
+          class="nav-tab">
+          Пользователи
+        </a>
+        <a
+          routerLink="/admin/licenses"
+          routerLinkActive="active"
+          class="nav-tab">
+          Лицензии
+        </a>
+        <a
+          routerLink="/admin/linked-chats"
+          routerLinkActive="active"
+          class="nav-tab">
+          Привязанные чаты
+        </a>
+        <span class="nav-tab disabled">Тех. поддержка</span>
+      </nav>
+      @if (!telegramService.isTelegramWebApp()) {
+        <button class="logout-btn" (click)="onLogout()">Выход</button>
+      }
+    </div>
+  </header>
+
+  <main class="admin-content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Mobile bottom navigation -->
+  <nav class="bottom-nav">
+    <a
+      routerLink="/admin/users"
+      routerLinkActive="active"
+      class="bottom-nav-item">
+      <svg class="bottom-nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="bottom-nav-label">Пользователи</span>
+    </a>
+    <a
+      routerLink="/admin/licenses"
+      routerLinkActive="active"
+      class="bottom-nav-item">
+      <svg class="bottom-nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 9H9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="bottom-nav-label">Лицензии</span>
+    </a>
+    <a
+      routerLink="/admin/linked-chats"
+      routerLinkActive="active"
+      class="bottom-nav-item">
+      <svg class="bottom-nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="bottom-nav-label">Чаты</span>
+    </a>
+    <button
+      class="bottom-nav-item"
+      (click)="onSupportClick()">
+      <svg class="bottom-nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9.09 9C9.3251 8.33167 9.78915 7.76811 10.4 7.40913C11.0108 7.05016 11.7289 6.91894 12.4272 7.03871C13.1255 7.15849 13.7588 7.52152 14.2151 8.06353C14.6713 8.60553 14.9211 9.29152 14.92 10C14.92 12 11.92 13 11.92 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 17H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="bottom-nav-label">Поддержка</span>
+    </button>
+  </nav>
+</div>

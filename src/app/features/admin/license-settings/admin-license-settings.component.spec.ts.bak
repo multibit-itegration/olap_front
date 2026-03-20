@@ -1,0 +1,681 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { AdminLicenseSettingsComponent } from './admin-license-settings.component';
+import { AdminService } from '../../../core/api/admin.service';
+import { Router, ActivatedRoute } from '@angular/router';
+import { of, throwError } from 'rxjs';
+import { License } from '../../../core/api/models/admin.models';
+
+describe('AdminLicenseSettingsComponent', () => {
+  let component: AdminLicenseSettingsComponent;
+  let fixture: ComponentFixture<AdminLicenseSettingsComponent>;
+  let adminServiceSpy: jasmine.SpyObj<AdminService>;
+  let routerSpy: jasmine.SpyObj<Router>;
+  let activatedRoute: ActivatedRoute;
+
+  const mockLicense: License = {
+    id: 1,
+    user_id: 1,
+    rms_id: 'RMS-001',
+    contract_num: 'CONTRACT-001',
+    expiration_date: '2026-12-31',
+    comment: 'Test license comment',
+    plan: 'Premium'
+  };
+
+  const mockLicenseWithNulls: License = {
+    id: 2,
+    user_id: 2,
+    rms_id: null,
+    contract_num: null,
+    expiration_date: '2026-06-30',
+    comment: null,
+    plan: 'Basic'
+  };
+
+  beforeEach(async () => {
+    const adminServiceSpyObj = jasmine.createSpyObj('AdminService', [
+      'getLicenseByUserId',
+      'updateLicense',
+      'deleteLicense'
+    ]);
+    const routerSpyObj = jasmine.createSpyObj('Router', ['navigate']);
+
+    await TestBed.configureTestingModule({
+      imports: [AdminLicenseSettingsComponent],
+      providers: [
+        { provide: AdminService, useValue: adminServiceSpyObj },
+        { provide: Router, useValue: routerSpyObj },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: {
+                get: (key: string) => '1'
+              }
+            }
+          }
+        }
+      ]
+    }).compileComponents();
+
+    adminServiceSpy = TestBed.inject(AdminService) as jasmine.SpyObj<AdminService>;
+    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    activatedRoute = TestBed.inject(ActivatedRoute);
+
+    fixture = TestBed.createComponent(AdminLicenseSettingsComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  describe('ngOnInit and loadLicense', () => {
+    it('should load license by user ID from route params on init', (done) => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicense));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.getLicenseByUserId).toHaveBeenCalledWith(1);
+        expect(component['license']()).toEqual(mockLicense);
+        expect(component['loading']()).toBeFalse();
+        done();
+      }, 10);
+    });
+
+    it('should populate form fields with license data', (done) => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicense));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['formPlan']()).toBe('Premium');
+        expect(component['formExpirationDate']()).toBe('2026-12-31');
+        expect(component['formRmsId']()).toBe('RMS-001');
+        expect(component['formContractNum']()).toBe('CONTRACT-001');
+        expect(component['formComment']()).toBe('Test license comment');
+        done();
+      }, 10);
+    });
+
+    it('should handle license with null optional fields', (done) => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicenseWithNulls));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['formRmsId']()).toBe('');
+        expect(component['formContractNum']()).toBe('');
+        expect(component['formComment']()).toBe('');
+        done();
+      }, 10);
+    });
+
+    it('should handle error when loading license fails', (done) => {
+      const error = new Error('License not found');
+      adminServiceSpy.getLicenseByUserId.and.returnValue(throwError(() => error));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Не удалось загрузить данные лицензии');
+        expect(component['loading']()).toBeFalse();
+        expect(component['license']()).toBeNull();
+        done();
+      }, 10);
+    });
+
+    it('should handle invalid user ID from route params', (done) => {
+      activatedRoute.snapshot.paramMap.get = (key: string) => 'invalid';
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Неверный ID пользователя');
+        expect(component['loading']()).toBeFalse();
+        expect(adminServiceSpy.getLicenseByUserId).not.toHaveBeenCalled();
+        done();
+      }, 10);
+    });
+
+    it('should handle null user ID from route params', (done) => {
+      activatedRoute.snapshot.paramMap.get = (key: string) => null;
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Неверный ID пользователя');
+        expect(component['loading']()).toBeFalse();
+        done();
+      }, 10);
+    });
+
+    it('should set loading state during data fetch', () => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicense));
+      expect(component['loading']()).toBeTrue();
+    });
+  });
+
+  describe('Form field change handlers', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicense));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should update formPlan signal on plan change', () => {
+      component['onPlanChange']('Enterprise');
+      expect(component['formPlan']()).toBe('Enterprise');
+    });
+
+    it('should update formExpirationDate signal on date change', () => {
+      component['onExpirationDateChange']('2027-12-31');
+      expect(component['formExpirationDate']()).toBe('2027-12-31');
+    });
+
+    it('should update formRmsId signal on RMS ID change', () => {
+      component['onRmsIdChange']('RMS-999');
+      expect(component['formRmsId']()).toBe('RMS-999');
+    });
+
+    it('should update formContractNum signal on contract number change', () => {
+      component['onContractNumChange']('CONTRACT-999');
+      expect(component['formContractNum']()).toBe('CONTRACT-999');
+    });
+
+    it('should update formComment signal on comment change', () => {
+      component['onCommentChange']('New comment');
+      expect(component['formComment']()).toBe('New comment');
+    });
+  });
+
+  describe('onSave - validation', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicense));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should show error when plan is empty', () => {
+      component['onPlanChange']('');
+      component['onSave']();
+      expect(component['error']()).toBe('План обязателен для заполнения');
+      expect(adminServiceSpy.updateLicense).not.toHaveBeenCalled();
+    });
+
+    it('should show error when plan is only whitespace', () => {
+      component['onPlanChange']('   ');
+      component['onSave']();
+      expect(component['error']()).toBe('План обязателен для заполнения');
+    });
+
+    it('should show error when expiration date is empty', () => {
+      component['onExpirationDateChange']('');
+      component['onSave']();
+      expect(component['error']()).toBe('Дата истечения обязательна для заполнения');
+      expect(adminServiceSpy.updateLicense).not.toHaveBeenCalled();
+    });
+
+    it('should show error when expiration date is only whitespace', () => {
+      component['onExpirationDateChange']('   ');
+      component['onSave']();
+      expect(component['error']()).toBe('Дата истечения обязательна для заполнения');
+    });
+
+    it('should not show error when both plan and date are valid', () => {
+      component['onPlanChange']('Valid Plan');
+      component['onExpirationDateChange']('2027-12-31');
+      component['onSave']();
+      expect(component['error']()).not.toBe('План обязателен для заполнения');
+      expect(component['error']()).not.toBe('Дата истечения обязательна для заполнения');
+    });
+
+    it('should return early if license is null', () => {
+      component['license'].set(null);
+      component['onSave']();
+      expect(adminServiceSpy.updateLicense).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onSave - sending only changed fields', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicense));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should send only changed plan', (done) => {
+      const response: License = { ...mockLicense, plan: 'Enterprise' };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onPlanChange']('Enterprise');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateLicense).toHaveBeenCalledWith(1, {
+          plan: 'Enterprise'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should send only changed expiration date', (done) => {
+      const response: License = { ...mockLicense, expiration_date: '2027-12-31' };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onExpirationDateChange']('2027-12-31');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateLicense).toHaveBeenCalledWith(1, {
+          expiration_date: '2027-12-31'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should send only changed rms_id', (done) => {
+      const response: License = { ...mockLicense, rms_id: 'RMS-999' };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onRmsIdChange']('RMS-999');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateLicense).toHaveBeenCalledWith(1, {
+          rms_id: 'RMS-999'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should send only changed contract_num', (done) => {
+      const response: License = { ...mockLicense, contract_num: 'CONTRACT-999' };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onContractNumChange']('CONTRACT-999');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateLicense).toHaveBeenCalledWith(1, {
+          contract_num: 'CONTRACT-999'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should send only changed comment', (done) => {
+      const response: License = { ...mockLicense, comment: 'New comment' };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onCommentChange']('New comment');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateLicense).toHaveBeenCalledWith(1, {
+          comment: 'New comment'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should send multiple changed fields', (done) => {
+      const response: License = {
+        ...mockLicense,
+        plan: 'Pro',
+        expiration_date: '2027-06-30'
+      };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onPlanChange']('Pro');
+      component['onExpirationDateChange']('2027-06-30');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateLicense).toHaveBeenCalledWith(1, {
+          plan: 'Pro',
+          expiration_date: '2027-06-30'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should handle clearing rms_id to empty string', (done) => {
+      const response: License = { ...mockLicense, rms_id: null };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onRmsIdChange']('');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateLicense).toHaveBeenCalledWith(1, {
+          rms_id: null
+        });
+        done();
+      }, 10);
+    });
+
+    it('should handle clearing contract_num to empty string', (done) => {
+      const response: License = { ...mockLicense, contract_num: null };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onContractNumChange']('');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateLicense).toHaveBeenCalledWith(1, {
+          contract_num: null
+        });
+        done();
+      }, 10);
+    });
+
+    it('should handle clearing comment to empty string', (done) => {
+      const response: License = { ...mockLicense, comment: null };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onCommentChange']('');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateLicense).toHaveBeenCalledWith(1, {
+          comment: null
+        });
+        done();
+      }, 10);
+    });
+
+    it('should show message when no changes to save', () => {
+      component['onSave']();
+      expect(component['successMessage']()).toBe('Нет изменений для сохранения');
+      expect(adminServiceSpy.updateLicense).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onSave - success handling', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicense));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should update local license data after successful save', (done) => {
+      const response: License = {
+        ...mockLicense,
+        plan: 'Enterprise',
+        expiration_date: '2028-12-31'
+      };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onPlanChange']('Enterprise');
+      component['onSave']();
+
+      setTimeout(() => {
+        const license = component['license']();
+        expect(license?.plan).toBe('Enterprise');
+        expect(license?.expiration_date).toBe('2028-12-31');
+        done();
+      }, 10);
+    });
+
+    it('should update form fields after successful save', (done) => {
+      const response: License = {
+        ...mockLicense,
+        plan: 'Enterprise',
+        rms_id: 'NEW-RMS',
+        contract_num: 'NEW-CONTRACT',
+        comment: 'New comment'
+      };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onPlanChange']('Enterprise');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['formPlan']()).toBe('Enterprise');
+        expect(component['formRmsId']()).toBe('NEW-RMS');
+        expect(component['formContractNum']()).toBe('NEW-CONTRACT');
+        expect(component['formComment']()).toBe('New comment');
+        done();
+      }, 10);
+    });
+
+    it('should handle null fields in response', (done) => {
+      const response: License = {
+        ...mockLicense,
+        rms_id: null,
+        contract_num: null,
+        comment: null
+      };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onRmsIdChange']('');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['formRmsId']()).toBe('');
+        expect(component['formContractNum']()).toBe('');
+        expect(component['formComment']()).toBe('');
+        done();
+      }, 10);
+    });
+
+    it('should show success message after save', (done) => {
+      const response: License = { ...mockLicense, plan: 'Enterprise' };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onPlanChange']('Enterprise');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['successMessage']()).toBe('Изменения успешно сохранены');
+        done();
+      }, 10);
+    });
+
+    it('should clear error message before save', () => {
+      component['error'].set('Previous error');
+      component['onPlanChange']('Enterprise');
+
+      const response: License = { ...mockLicense, plan: 'Enterprise' };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onSave']();
+      expect(component['error']()).toBeNull();
+    });
+
+    it('should set saving state during save', (done) => {
+      const response: License = { ...mockLicense, plan: 'Enterprise' };
+      adminServiceSpy.updateLicense.and.returnValue(of(response));
+
+      component['onPlanChange']('Enterprise');
+      component['onSave']();
+
+      expect(component['saving']()).toBeTrue();
+
+      setTimeout(() => {
+        expect(component['saving']()).toBeFalse();
+        done();
+      }, 10);
+    });
+  });
+
+  describe('onSave - error handling', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicense));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should handle error when update fails', (done) => {
+      const error = new Error('Update failed');
+      adminServiceSpy.updateLicense.and.returnValue(throwError(() => error));
+
+      component['onPlanChange']('Enterprise');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Не удалось обновить данные лицензии');
+        expect(component['saving']()).toBeFalse();
+        done();
+      }, 10);
+    });
+
+    it('should not update local data when update fails', (done) => {
+      const error = new Error('Update failed');
+      adminServiceSpy.updateLicense.and.returnValue(throwError(() => error));
+
+      const originalPlan = component['license']()?.plan;
+      component['onPlanChange']('Enterprise');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['license']()?.plan).toBe(originalPlan);
+        done();
+      }, 10);
+    });
+  });
+
+  describe('onDelete', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(mockLicense));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should ask for confirmation before deleting', () => {
+      spyOn(window, 'confirm').and.returnValue(false);
+      component['onDelete']();
+      expect(window.confirm).toHaveBeenCalled();
+      expect(adminServiceSpy.deleteLicense).not.toHaveBeenCalled();
+    });
+
+    it('should include license ID in confirmation message', () => {
+      spyOn(window, 'confirm').and.returnValue(false);
+      component['onDelete']();
+      expect(window.confirm).toHaveBeenCalledWith(
+        jasmine.stringContaining('#1')
+      );
+    });
+
+    it('should delete license when confirmed', (done) => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      adminServiceSpy.deleteLicense.and.returnValue(of(undefined));
+
+      component['onDelete']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.deleteLicense).toHaveBeenCalledWith(1);
+        done();
+      }, 10);
+    });
+
+    it('should navigate to licenses list after successful delete', (done) => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      adminServiceSpy.deleteLicense.and.returnValue(of(undefined));
+
+      component['onDelete']();
+
+      setTimeout(() => {
+        expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin/licenses']);
+        done();
+      }, 10);
+    });
+
+    it('should handle error when delete fails', (done) => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      const error = new Error('Delete failed');
+      adminServiceSpy.deleteLicense.and.returnValue(throwError(() => error));
+
+      component['onDelete']();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Не удалось удалить лицензию');
+        expect(component['saving']()).toBeFalse();
+        expect(routerSpy.navigate).not.toHaveBeenCalled();
+        done();
+      }, 10);
+    });
+
+    it('should set saving state during delete', (done) => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      adminServiceSpy.deleteLicense.and.returnValue(of(undefined));
+
+      component['onDelete']();
+
+      expect(component['saving']()).toBeTrue();
+
+      setTimeout(() => {
+        expect(component['saving']()).toBeFalse();
+        done();
+      }, 10);
+    });
+
+    it('should return early if license is null', () => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      component['license'].set(null);
+      component['onDelete']();
+      expect(adminServiceSpy.deleteLicense).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onBack', () => {
+    it('should navigate back to licenses list', () => {
+      component['onBack']();
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin/licenses']);
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should handle license with very long comment', (done) => {
+      const longComment = 'A'.repeat(1000);
+      const licenseWithLongComment: License = {
+        ...mockLicense,
+        comment: longComment
+      };
+
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(licenseWithLongComment));
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['formComment']()).toBe(longComment);
+        done();
+      }, 10);
+    });
+
+    it('should handle date in different formats', (done) => {
+      const licenseWithDate: License = {
+        ...mockLicense,
+        expiration_date: '2026-01-01'
+      };
+
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(licenseWithDate));
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['formExpirationDate']()).toBe('2026-01-01');
+        done();
+      }, 10);
+    });
+
+    it('should handle special characters in fields', (done) => {
+      const licenseWithSpecialChars: License = {
+        ...mockLicense,
+        rms_id: 'RMS-001-#@!',
+        contract_num: 'CONTRACT/001\\TEST',
+        comment: 'Comment with "quotes" and \'apostrophes\''
+      };
+
+      adminServiceSpy.getLicenseByUserId.and.returnValue(of(licenseWithSpecialChars));
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['formRmsId']()).toBe('RMS-001-#@!');
+        expect(component['formContractNum']()).toBe('CONTRACT/001\\TEST');
+        expect(component['formComment']()).toContain('quotes');
+        done();
+      }, 10);
+    });
+  });
+});

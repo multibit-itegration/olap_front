@@ -1,0 +1,209 @@
+<div class="databases-container">
+  @if (authService.currentUser(); as user) {
+    @if (!user.telegram_id) {
+      <div class="telegram-banner">
+        <div class="banner-icon">
+          <svg width="32" height="32" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="tg-grad-user-db" x1="120" y1="0" x2="120" y2="240" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#37AEE2"/>
+                <stop offset="1" stop-color="#1E96C8"/>
+              </linearGradient>
+            </defs>
+            <circle cx="120" cy="120" r="120" fill="url(#tg-grad-user-db)"/>
+            <path d="M98 175c-3.888 0-3.227-1.468-4.568-5.17L82 132.207 170 80" fill="#C8DAEA"/>
+            <path d="M98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035" fill="#A9C9DD"/>
+            <path d="M100.04 144.41l48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258" fill="white"/>
+          </svg>
+        </div>
+        <div class="banner-content">
+          <h3 class="banner-title">Свяжите Telegram аккаунт</h3>
+          <p class="banner-text">Подключите свой Telegram профиль для получения уведомлений и удобного доступа к функциям системы</p>
+        </div>
+        <a href="https://t.me/OLAP_iiko_bot" target="_blank" rel="noopener noreferrer" class="telegram-button">
+          Перейти в бота
+        </a>
+      </div>
+    }
+  }
+
+  <div class="header-section">
+    <h1 class="page-title">МОИ БАЗЫ ДАННЫХ</h1>
+    <button class="add-btn" (click)="onAddDatabase()" title="Добавить базу данных">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 4V16M4 10H16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
+  @if (showForm()) {
+    <div class="form-container">
+      <div class="form-header">
+        <h2 class="form-title">{{ editingConnection() ? 'Редактирование базы данных' : 'Добавление базы данных' }}</h2>
+      </div>
+
+      @if (formError()) {
+        <div class="form-error">
+          {{ formError() }}
+        </div>
+      }
+
+      <div class="form-content">
+        <div class="form-fields">
+          <div class="form-group">
+            <label for="name" class="form-label">Название базы</label>
+            <input
+              id="name"
+              type="text"
+              class="form-input"
+              [value]="formName()"
+              (input)="onNameChange($event)"
+              placeholder="Например: Основная база"
+              [disabled]="formLoading()"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="host" class="form-label">Адрес базы</label>
+            <input
+              id="host"
+              type="text"
+              class="form-input"
+              [class.input-error]="formErrorType() === 'connection'"
+              [value]="formHost()"
+              (input)="onHostChange($event)"
+              placeholder="Например: multibit.iiko.it"
+              [disabled]="formLoading()"
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="path" class="form-label">Путь</label>
+              <input
+                id="path"
+                type="text"
+                class="form-input"
+                [class.input-error]="formErrorType() === 'connection'"
+                [value]="formPath()"
+                (input)="onPathChange($event)"
+                placeholder="/"
+                [disabled]="formLoading()"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="port" class="form-label">Порт</label>
+              <input
+                id="port"
+                type="number"
+                class="form-input"
+                [class.input-error]="formErrorType() === 'connection'"
+                [value]="formPort()"
+                (input)="onPortChange($event)"
+                placeholder="443"
+                [disabled]="formLoading()"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="username" class="form-label">Имя пользователя iiko</label>
+            <input
+              id="username"
+              type="text"
+              class="form-input"
+              [value]="formUsername()"
+              (input)="onUsernameChange($event)"
+              placeholder="Имя пользователя"
+              [disabled]="formLoading()"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label">Пароль пользователя iiko <span class="required">*</span></label>
+            <input
+              id="password"
+              type="password"
+              class="form-input"
+              [class.input-error]="formErrorType() === 'password'"
+              [value]="formPassword()"
+              (input)="onPasswordChange($event)"
+              placeholder="Пароль"
+              [disabled]="formLoading()"
+            />
+            <div class="form-hint">
+              *Не волнуйтесь — мы не сохраняем ваш пароль. Он шифруется и используется только для подключения к вашей базе.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            class="btn btn-cancel"
+            (click)="onCancelForm()"
+            [disabled]="formLoading()"
+          >
+            Отмена
+          </button>
+
+          @if (editingConnection()) {
+            <button
+              class="btn btn-delete"
+              (click)="onDeleteConnection()"
+              [disabled]="formLoading()"
+            >
+              Удалить
+            </button>
+          }
+
+          <button
+            class="btn btn-save"
+            (click)="onSaveForm()"
+            [disabled]="formLoading()"
+          >
+            {{ formLoading() ? 'Сохранение...' : 'Сохранить' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (!showForm()) {
+    @if (loading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Загрузка баз данных...</p>
+      </div>
+    } @else if (error()) {
+      <div class="error-state">
+        <p>{{ error() }}</p>
+        <button class="retry-btn" (click)="retry()">Повторить</button>
+      </div>
+    } @else if (databases().length === 0) {
+      <div class="empty-state">
+        <p>У вас пока нет баз данных</p>
+        <p class="empty-hint">Добавьте первую базу, чтобы начать работу</p>
+        <button class="add-database-btn" (click)="onAddDatabase()">
+          Добавить базу
+        </button>
+      </div>
+    } @else {
+      <div class="databases-list">
+        @for (database of databases(); track trackByDatabaseId($index, database)) {
+          <div class="database-card">
+            <div class="database-name">{{ database.name }}</div>
+            <div class="database-actions">
+              <button class="action-btn reports-btn" (click)="onReports(database)">
+                Отчёты
+              </button>
+              <button class="action-btn settings-btn" (click)="onSettings(database)">
+                Настройки
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,80 @@
+<div class="licenses-container">
+  <div class="search-bar">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M19 19L14.65 14.65" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Поиск лицензий..."
+        [value]="searchQuery()"
+        (input)="onSearchChange($event)"
+      />
+    </div>
+    <button
+      class="filter-btn"
+      [class.active]="true"
+      [title]="sortAsc() ? 'Дата: по возрастанию' : 'Дата: по убыванию'"
+      (click)="toggleSort()"
+    >
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 4H18M5 10H15M8 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="sort-indicator">{{ sortAsc() ? 'Сначала старые' : 'Сначала новые' }}</span>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка лицензий...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+      <button class="retry-btn" (click)="retry()">Повторить</button>
+    </div>
+  } @else if (filteredLicenses().length === 0) {
+    <div class="empty-state">
+      <p>Лицензии не найдены</p>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table class="licenses-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>User ID</th>
+            <th>План</th>
+            <th>Дата истечения</th>
+            <th>Комментарий</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (license of filteredLicenses(); track trackByLicenseId($index, license)) {
+            <tr class="clickable-row" (click)="onLicenseClick(license)">
+              <td class="license-id">{{ license.id }}</td>
+              <td class="user-id">{{ license.user_id }}</td>
+              <td class="plan">
+                <span class="plan-badge">{{ license.plan }}</span>
+              </td>
+              <td class="expiration-date">
+                <span
+                  class="date-badge"
+                  [class.expired]="isExpired(license.expiration_date)"
+                  [class.expiring-soon]="isExpiringSoon(license.expiration_date)">
+                  {{ formatDate(license.expiration_date) }}
+                </span>
+              </td>
+              <td class="comment">
+                {{ license.comment || '—' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

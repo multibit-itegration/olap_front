@@ -1,0 +1,164 @@
+<div class="settings-container">
+  <div class="header-actions">
+    <button class="back-btn" (click)="onBack()">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Назад
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка данных пользователя...</p>
+    </div>
+  } @else if (error() && !user()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+      <button class="retry-btn" (click)="retry()">Повторить</button>
+    </div>
+  } @else if (user()) {
+    <div class="settings-card">
+      <h2 class="card-title">Настройки пользователя</h2>
+
+      <!-- User Info (Read-only) -->
+      <div class="info-section">
+        <div class="info-row">
+          <span class="info-label">ID:</span>
+          <span class="info-value">{{ user()!.id }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Роль:</span>
+          <span class="role-badge" [class.role-admin]="user()!.role === 'admin'">
+            {{ getRoleDisplayName() }}
+          </span>
+        </div>
+        @if (user()!.telegram_id) {
+          <div class="info-row">
+            <span class="info-label">Telegram ID:</span>
+            <span class="info-value">{{ user()!.telegram_id }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Linked Chats Banner -->
+      <div class="linked-chats-banner" (click)="onViewLinkedChats()">
+        <div class="banner-left">
+          <div class="banner-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="banner-text">
+            <span class="banner-title">Привязанные чаты</span>
+            <span class="banner-subtitle">Управление Telegram-чатами пользователя для рассылки отчётов</span>
+          </div>
+        </div>
+        <svg class="banner-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Editable Form -->
+      <form class="edit-form" (ngSubmit)="onSave()">
+        <div class="form-group">
+          <label for="name" class="form-label">Имя <span class="required">*</span></label>
+          <input
+            id="name"
+            type="text"
+            class="form-input"
+            [value]="formName()"
+            (input)="onInputChange($event, 'name')"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="phone" class="form-label">Телефон <span class="required">*</span></label>
+          <input
+            id="phone"
+            type="tel"
+            class="form-input"
+            [value]="formPhone()"
+            (input)="onInputChange($event, 'phone')"
+            placeholder="+7 (XXX) XXX-XX-XX"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email" class="form-label">Email</label>
+          <input
+            id="email"
+            type="email"
+            class="form-input"
+            [value]="formEmail()"
+            (input)="onInputChange($event, 'email')"
+            placeholder="example@domain.com"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Новый пароль</label>
+          <input
+            id="password"
+            type="password"
+            class="form-input"
+            [value]="formPassword()"
+            (input)="onInputChange($event, 'password')"
+            placeholder="Оставьте пустым, если не хотите менять"
+          />
+          <p class="form-hint">Минимум 6 символов</p>
+        </div>
+
+        @if (error()) {
+          <div class="error-message">
+            {{ error() }}
+          </div>
+        }
+
+        @if (successMessage()) {
+          <div class="success-message">
+            {{ successMessage() }}
+          </div>
+        }
+
+        <button
+          type="submit"
+          class="save-btn"
+          [disabled]="saving()"
+        >
+          @if (saving()) {
+            <span class="btn-spinner"></span>
+            Сохранение...
+          } @else {
+            Сохранить изменения
+          }
+        </button>
+      </form>
+
+      <div class="divider"></div>
+
+      <!-- Danger Zone -->
+      <div class="danger-zone">
+        <h3 class="danger-title">Опасная зона</h3>
+        <p class="danger-description">
+          Удаление пользователя необратимо. Все данные пользователя будут потеряны.
+        </p>
+        <button
+          type="button"
+          class="delete-btn"
+          (click)="onDelete()"
+          [disabled]="saving()"
+        >
+          Удалить пользователя
+        </button>
+      </div>
+    </div>
+  }
+</div>

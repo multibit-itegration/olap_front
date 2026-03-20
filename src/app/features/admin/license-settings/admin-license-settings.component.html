@@ -1,0 +1,146 @@
+<div class="settings-container">
+  <div class="header-actions">
+    <button class="back-btn" (click)="onBack()">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Назад
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка данных лицензии...</p>
+    </div>
+  } @else if (error() && !license()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+      <button class="retry-btn" (click)="retry()">Повторить</button>
+    </div>
+  } @else if (license()) {
+    <div class="settings-card">
+      <h2 class="card-title">Настройки лицензии</h2>
+
+      <!-- License Info (Read-only) -->
+      <div class="info-section">
+        <div class="info-row">
+          <span class="info-label">ID лицензии:</span>
+          <span class="info-value">{{ license()!.id }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ID пользователя:</span>
+          <span class="info-value">{{ license()!.user_id }}</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Editable Form -->
+      <form class="edit-form" (ngSubmit)="onSave()">
+        <div class="form-group">
+          <label for="plan" class="form-label">План <span class="required">*</span></label>
+          <input
+            id="plan"
+            type="text"
+            class="form-input"
+            [value]="formPlan()"
+            (input)="onInputChange($event, 'plan')"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="expirationDate" class="form-label">Дата истечения <span class="required">*</span></label>
+          <input
+            id="expirationDate"
+            type="date"
+            class="form-input"
+            [value]="formExpirationDate()"
+            (input)="onInputChange($event, 'expirationDate')"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="rmsId" class="form-label">RMS ID</label>
+          <input
+            id="rmsId"
+            type="text"
+            class="form-input"
+            [value]="formRmsId()"
+            (input)="onInputChange($event, 'rmsId')"
+            placeholder="Оставьте пустым, если не используется"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="contractNum" class="form-label">Номер контракта</label>
+          <input
+            id="contractNum"
+            type="text"
+            class="form-input"
+            [value]="formContractNum()"
+            (input)="onInputChange($event, 'contractNum')"
+            placeholder="Оставьте пустым, если не используется"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="comment" class="form-label">Комментарий</label>
+          <textarea
+            id="comment"
+            class="form-textarea"
+            rows="4"
+            [value]="formComment()"
+            (input)="onInputChange($event, 'comment')"
+            placeholder="Дополнительная информация о лицензии"
+          ></textarea>
+        </div>
+
+        @if (error()) {
+          <div class="error-message">
+            {{ error() }}
+          </div>
+        }
+
+        @if (successMessage()) {
+          <div class="success-message">
+            {{ successMessage() }}
+          </div>
+        }
+
+        <button
+          type="submit"
+          class="save-btn"
+          [disabled]="saving()"
+        >
+          @if (saving()) {
+            <span class="btn-spinner"></span>
+            Сохранение...
+          } @else {
+            Сохранить изменения
+          }
+        </button>
+      </form>
+
+      <div class="divider"></div>
+
+      <!-- Danger Zone -->
+      <div class="danger-zone">
+        <h3 class="danger-title">Опасная зона</h3>
+        <p class="danger-description">
+          Удаление лицензии необратимо. Все данные лицензии будут потеряны.
+        </p>
+        <button
+          type="button"
+          class="delete-btn"
+          (click)="onDelete()"
+          [disabled]="saving()"
+        >
+          Удалить лицензию
+        </button>
+      </div>
+    </div>
+  }
+</div>

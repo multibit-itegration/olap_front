@@ -1,0 +1,95 @@
+<div class="auth-container">
+  <h1 class="auth-title">ВХОД</h1>
+
+  <div class="auth-card">
+    @if (isTelegramAuthInProgress()) {
+      <div class="telegram-auth-loading">
+        <div class="loading-spinner"></div>
+        <p>Authenticating via Telegram...</p>
+      </div>
+    }
+
+    @if (showLoginForm()) {
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label class="form-label">Номер телефона</label>
+        <input
+          type="tel"
+          class="form-input"
+          [class.error]="hasError()"
+          formControlName="phone"
+          placeholder="+7"
+          (input)="formatPhone($event)"
+          maxlength="12"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Пароль</label>
+        <div class="password-wrapper">
+          <input
+            [type]="showPassword() ? 'text' : 'password'"
+            class="form-input"
+            [class.error]="hasError()"
+            formControlName="password"
+            placeholder="Введите пароль"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            tabindex="-1"
+          >
+            @if (!showPassword()) {
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            }
+            @if (showPassword()) {
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            }
+          </button>
+        </div>
+      </div>
+
+      @if (hasError()) {
+        <div class="error-message">
+          ❌ {{ errorMessage() }}
+        </div>
+      }
+
+      <button type="submit" class="submit-button" [disabled]="loginForm.invalid || isSubmitting()">
+        {{ isSubmitting() ? 'Вход...' : 'Войти' }}
+      </button>
+
+      <div class="footer-link">
+        Нет профиля ? <a routerLink="/reg">Зарегистрируйтесь</a>
+      </div>
+    </form>
+    }
+  </div>
+</div>

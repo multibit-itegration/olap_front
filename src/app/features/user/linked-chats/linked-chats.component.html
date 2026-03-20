@@ -1,0 +1,107 @@
+<div class="chats-container">
+  @if (isAdminView()) {
+    <div class="header-actions">
+      <button class="back-btn" (click)="onBack()">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Назад к настройкам
+      </button>
+    </div>
+  }
+
+  @if (authService.currentUser(); as user) {
+    @if (!user.telegram_id && !isAdminView()) {
+      <div class="telegram-banner">
+        <div class="banner-icon">
+          <svg width="32" height="32" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="tg-grad-linked-chats" x1="120" y1="0" x2="120" y2="240" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#37AEE2"/>
+                <stop offset="1" stop-color="#1E96C8"/>
+              </linearGradient>
+            </defs>
+            <circle cx="120" cy="120" r="120" fill="url(#tg-grad-linked-chats)"/>
+            <path d="M98 175c-3.888 0-3.227-1.468-4.568-5.17L82 132.207 170 80" fill="#C8DAEA"/>
+            <path d="M98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035" fill="#A9C9DD"/>
+            <path d="M100.04 144.41l48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258" fill="white"/>
+          </svg>
+        </div>
+        <div class="banner-content">
+          <h3 class="banner-title">Свяжите Telegram аккаунт</h3>
+          <p class="banner-text">Подключите свой Telegram профиль, чтобы управлять чатами для получения отчётов</p>
+        </div>
+        <a href="https://t.me/OLAP_iiko_bot" target="_blank" rel="noopener noreferrer" class="telegram-button">
+          Перейти в бота
+        </a>
+      </div>
+    }
+  }
+
+  <div class="header-section">
+    <h1 class="page-title">ПРИВЯЗАННЫЕ ЧАТЫ</h1>
+  </div>
+
+  @if (updateError()) {
+    <div class="update-error-banner">
+      {{ updateError() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка привязанных чатов...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+      <button class="retry-btn" (click)="retry()">Повторить</button>
+    </div>
+  } @else if (chats().length === 0) {
+    <div class="empty-state">
+      <svg class="empty-icon" width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 8C22.33 8 8 20.54 8 36c0 8.77 4.66 16.63 12 21.79V68l9.54-5.27C33.18 63.56 36.52 64 40 64c17.67 0 32-12.54 32-28S57.67 8 40 8Z" stroke="#d0d0d0" stroke-width="3.5" fill="none"/>
+        <circle cx="28" cy="36" r="3.5" fill="#d0d0d0"/>
+        <circle cx="40" cy="36" r="3.5" fill="#d0d0d0"/>
+        <circle cx="52" cy="36" r="3.5" fill="#d0d0d0"/>
+      </svg>
+      <p>У вас пока нет привязанных чатов</p>
+      <p class="empty-hint">Чаты добавляются через Telegram бота при подключении групп для получения отчётов</p>
+      @if (authService.currentUser()?.telegram_id) {
+        <a href="https://t.me/OLAP_iiko_bot" target="_blank" rel="noopener noreferrer" class="telegram-link-btn">
+          Открыть бота
+        </a>
+      }
+    </div>
+  } @else {
+    <div class="chats-list">
+      @for (chat of chats(); track trackByChatId($index, chat)) {
+        <div class="chat-card">
+          <div class="chat-info">
+            <div class="chat-name">{{ chat.group_name }}</div>
+            <div class="chat-status" [class.active]="chat.is_active" [class.inactive]="!chat.is_active">
+              {{ chat.is_active ? 'Активен' : 'Неактивен' }}
+            </div>
+          </div>
+          <div class="chat-actions">
+            <button
+              class="toggle-btn"
+              [class.toggle-active]="chat.is_active"
+              [class.toggle-inactive]="!chat.is_active"
+              [disabled]="updatingChatId() === chat.id"
+              (click)="onToggleStatus(chat)"
+              title="{{ chat.is_active ? 'Деактивировать чат' : 'Активировать чат' }}"
+            >
+              @if (updatingChatId() === chat.id) {
+                <div class="button-spinner"></div>
+              } @else {
+                {{ chat.is_active ? 'Деактивировать' : 'Активировать' }}
+              }
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

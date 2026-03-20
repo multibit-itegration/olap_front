@@ -1,0 +1,676 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { AdminUserSettingsComponent } from './admin-user-settings.component';
+import { AdminService } from '../../../core/api/admin.service';
+import { Router, ActivatedRoute } from '@angular/router';
+import { of, throwError } from 'rxjs';
+import { User } from '../../../core/api/models/user.models';
+import { UserUpdateResponse } from '../../../core/api/models/admin.models';
+
+describe('AdminUserSettingsComponent', () => {
+  let component: AdminUserSettingsComponent;
+  let fixture: ComponentFixture<AdminUserSettingsComponent>;
+  let adminServiceSpy: jasmine.SpyObj<AdminService>;
+  let routerSpy: jasmine.SpyObj<Router>;
+  let activatedRoute: ActivatedRoute;
+
+  const mockUser: User = {
+    id: 1,
+    name: 'Test User',
+    phone: '+1234567890',
+    email: 'test@example.com',
+    telegram_id: 12345,
+    role: 'user'
+  };
+
+  const mockAdminUser: User = {
+    id: 2,
+    name: 'Admin User',
+    phone: '+0987654321',
+    email: 'admin@example.com',
+    telegram_id: null,
+    role: 'admin'
+  };
+
+  beforeEach(async () => {
+    const adminServiceSpyObj = jasmine.createSpyObj('AdminService', [
+      'getUserById',
+      'updateUser',
+      'deleteUser'
+    ]);
+    const routerSpyObj = jasmine.createSpyObj('Router', ['navigate']);
+
+    await TestBed.configureTestingModule({
+      imports: [AdminUserSettingsComponent],
+      providers: [
+        { provide: AdminService, useValue: adminServiceSpyObj },
+        { provide: Router, useValue: routerSpyObj },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: {
+                get: (key: string) => '1'
+              }
+            }
+          }
+        }
+      ]
+    }).compileComponents();
+
+    adminServiceSpy = TestBed.inject(AdminService) as jasmine.SpyObj<AdminService>;
+    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    activatedRoute = TestBed.inject(ActivatedRoute);
+
+    fixture = TestBed.createComponent(AdminUserSettingsComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  describe('ngOnInit and loadUser', () => {
+    it('should load user by ID from route params on init', (done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.getUserById).toHaveBeenCalledWith(1);
+        expect(component['user']()).toEqual(mockUser);
+        expect(component['loading']()).toBeFalse();
+        done();
+      }, 10);
+    });
+
+    it('should populate form fields with user data', (done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['formName']()).toBe('Test User');
+        expect(component['formPhone']()).toBe('+1234567890');
+        expect(component['formEmail']()).toBe('test@example.com');
+        expect(component['formPassword']()).toBe('');
+        done();
+      }, 10);
+    });
+
+    it('should handle user with null email', (done) => {
+      const userWithoutEmail = { ...mockUser, email: null };
+      adminServiceSpy.getUserById.and.returnValue(of(userWithoutEmail));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['formEmail']()).toBe('');
+        done();
+      }, 10);
+    });
+
+    it('should handle error when loading user fails', (done) => {
+      const error = new Error('User not found');
+      adminServiceSpy.getUserById.and.returnValue(throwError(() => error));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Не удалось загрузить данные пользователя');
+        expect(component['loading']()).toBeFalse();
+        expect(component['user']()).toBeNull();
+        done();
+      }, 10);
+    });
+
+    it('should handle invalid user ID from route params', (done) => {
+      activatedRoute.snapshot.paramMap.get = (key: string) => 'invalid';
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Неверный ID пользователя');
+        expect(component['loading']()).toBeFalse();
+        expect(adminServiceSpy.getUserById).not.toHaveBeenCalled();
+        done();
+      }, 10);
+    });
+
+    it('should handle null user ID from route params', (done) => {
+      activatedRoute.snapshot.paramMap.get = (key: string) => null;
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Неверный ID пользователя');
+        expect(component['loading']()).toBeFalse();
+        done();
+      }, 10);
+    });
+
+    it('should set loading state during data fetch', () => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+      expect(component['loading']()).toBeTrue();
+    });
+  });
+
+  describe('Form field change handlers', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should update formName signal on name change', () => {
+      component['onNameChange']('New Name');
+      expect(component['formName']()).toBe('New Name');
+    });
+
+    it('should update formPhone signal on phone change', () => {
+      component['onPhoneChange']('+9999999999');
+      expect(component['formPhone']()).toBe('+9999999999');
+    });
+
+    it('should update formEmail signal on email change', () => {
+      component['onEmailChange']('newemail@test.com');
+      expect(component['formEmail']()).toBe('newemail@test.com');
+    });
+
+    it('should update formPassword signal on password change', () => {
+      component['onPasswordChange']('newpassword123');
+      expect(component['formPassword']()).toBe('newpassword123');
+    });
+  });
+
+  describe('onSave - validation', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should show error when name is empty', () => {
+      component['onNameChange']('');
+      component['onSave']();
+      expect(component['error']()).toBe('Имя обязательно для заполнения');
+      expect(adminServiceSpy.updateUser).not.toHaveBeenCalled();
+    });
+
+    it('should show error when name is only whitespace', () => {
+      component['onNameChange']('   ');
+      component['onSave']();
+      expect(component['error']()).toBe('Имя обязательно для заполнения');
+    });
+
+    it('should show error when phone is empty', () => {
+      component['onPhoneChange']('');
+      component['onSave']();
+      expect(component['error']()).toBe('Телефон обязателен для заполнения');
+      expect(adminServiceSpy.updateUser).not.toHaveBeenCalled();
+    });
+
+    it('should show error when phone is only whitespace', () => {
+      component['onPhoneChange']('   ');
+      component['onSave']();
+      expect(component['error']()).toBe('Телефон обязателен для заполнения');
+    });
+
+    it('should not show error when both name and phone are valid', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Valid Name',
+        phone: '+9999999999',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onNameChange']('Valid Name');
+      component['onPhoneChange']('+9999999999');
+      component['onSave']();
+
+      expect(component['error']()).not.toBe('Имя обязательно для заполнения');
+      expect(component['error']()).not.toBe('Телефон обязателен для заполнения');
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateUser).toHaveBeenCalled();
+        done();
+      }, 10);
+    });
+
+    it('should return early if user is null', () => {
+      component['user'].set(null);
+      component['onSave']();
+      expect(adminServiceSpy.updateUser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onSave - sending only changed fields', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should send only changed name', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Updated Name',
+        phone: '+1234567890',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onNameChange']('Updated Name');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateUser).toHaveBeenCalledWith(1, {
+          name: 'Updated Name'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should send only changed phone', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Test User',
+        phone: '+9999999999',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onPhoneChange']('+9999999999');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateUser).toHaveBeenCalledWith(1, {
+          phone: '+9999999999'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should send only changed email', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Test User',
+        phone: '+1234567890',
+        email: 'newemail@test.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onEmailChange']('newemail@test.com');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateUser).toHaveBeenCalledWith(1, {
+          email: 'newemail@test.com'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should send password only if provided', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Test User',
+        phone: '+1234567890',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onPasswordChange']('newpassword');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateUser).toHaveBeenCalledWith(1, {
+          password: 'newpassword'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should not send password if empty', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Updated Name',
+        phone: '+1234567890',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onNameChange']('Updated Name');
+      component['onPasswordChange']('');
+      component['onSave']();
+
+      setTimeout(() => {
+        const callArgs = adminServiceSpy.updateUser.calls.mostRecent().args[1];
+        expect(callArgs.password).toBeUndefined();
+        done();
+      }, 10);
+    });
+
+    it('should send multiple changed fields', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'New Name',
+        phone: '+9999999999',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onNameChange']('New Name');
+      component['onPhoneChange']('+9999999999');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateUser).toHaveBeenCalledWith(1, {
+          name: 'New Name',
+          phone: '+9999999999'
+        });
+        done();
+      }, 10);
+    });
+
+    it('should handle email cleared to empty string', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Test User',
+        phone: '+1234567890',
+        email: null
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onEmailChange']('');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.updateUser).toHaveBeenCalledWith(1, {
+          email: null
+        });
+        done();
+      }, 10);
+    });
+
+    it('should show message when no changes to save', () => {
+      component['onSave']();
+      expect(component['successMessage']()).toBe('Нет изменений для сохранения');
+      expect(adminServiceSpy.updateUser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onSave - success handling', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should update local user data after successful save', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Updated Name',
+        phone: '+9999999999',
+        email: 'updated@test.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onNameChange']('Updated Name');
+      component['onSave']();
+
+      setTimeout(() => {
+        const user = component['user']();
+        expect(user?.name).toBe('Updated Name');
+        expect(user?.phone).toBe('+9999999999');
+        expect(user?.email).toBe('updated@test.com');
+        done();
+      }, 10);
+    });
+
+    it('should update form fields after successful save', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Updated Name',
+        phone: '+9999999999',
+        email: 'updated@test.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onNameChange']('Updated Name');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['formName']()).toBe('Updated Name');
+        expect(component['formPhone']()).toBe('+9999999999');
+        expect(component['formEmail']()).toBe('updated@test.com');
+        done();
+      }, 10);
+    });
+
+    it('should clear password field after successful save', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Test User',
+        phone: '+1234567890',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onPasswordChange']('newpassword');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['formPassword']()).toBe('');
+        done();
+      }, 10);
+    });
+
+    it('should show success message after save', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Updated Name',
+        phone: '+1234567890',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onNameChange']('Updated Name');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['successMessage']()).toBe('Изменения успешно сохранены');
+        done();
+      }, 10);
+    });
+
+    it('should clear error message before save', () => {
+      component['error'].set('Previous error');
+      component['onNameChange']('Updated Name');
+
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Updated Name',
+        phone: '+1234567890',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onSave']();
+      expect(component['error']()).toBeNull();
+    });
+
+    it('should set saving state during save', (done) => {
+      const response: UserUpdateResponse = {
+        id: 1,
+        name: 'Updated Name',
+        phone: '+1234567890',
+        email: 'test@example.com'
+      };
+      adminServiceSpy.updateUser.and.returnValue(of(response));
+
+      component['onNameChange']('Updated Name');
+      component['onSave']();
+
+      expect(component['saving']()).toBeTrue();
+
+      setTimeout(() => {
+        expect(component['saving']()).toBeFalse();
+        done();
+      }, 10);
+    });
+  });
+
+  describe('onSave - error handling', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should handle error when update fails', (done) => {
+      const error = new Error('Update failed');
+      adminServiceSpy.updateUser.and.returnValue(throwError(() => error));
+
+      component['onNameChange']('Updated Name');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Не удалось обновить данные пользователя');
+        expect(component['saving']()).toBeFalse();
+        done();
+      }, 10);
+    });
+
+    it('should not update local data when update fails', (done) => {
+      const error = new Error('Update failed');
+      adminServiceSpy.updateUser.and.returnValue(throwError(() => error));
+
+      const originalName = component['user']()?.name;
+      component['onNameChange']('Updated Name');
+      component['onSave']();
+
+      setTimeout(() => {
+        expect(component['user']()?.name).toBe(originalName);
+        done();
+      }, 10);
+    });
+  });
+
+  describe('onDelete', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+      fixture.detectChanges();
+      setTimeout(done, 10);
+    });
+
+    it('should ask for confirmation before deleting', () => {
+      spyOn(window, 'confirm').and.returnValue(false);
+      component['onDelete']();
+      expect(window.confirm).toHaveBeenCalled();
+      expect(adminServiceSpy.deleteUser).not.toHaveBeenCalled();
+    });
+
+    it('should include user name in confirmation message', () => {
+      spyOn(window, 'confirm').and.returnValue(false);
+      component['onDelete']();
+      expect(window.confirm).toHaveBeenCalledWith(
+        jasmine.stringContaining('Test User')
+      );
+    });
+
+    it('should delete user when confirmed', (done) => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      adminServiceSpy.deleteUser.and.returnValue(of(undefined));
+
+      component['onDelete']();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.deleteUser).toHaveBeenCalledWith(1);
+        done();
+      }, 10);
+    });
+
+    it('should navigate to users list after successful delete', (done) => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      adminServiceSpy.deleteUser.and.returnValue(of(undefined));
+
+      component['onDelete']();
+
+      setTimeout(() => {
+        expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin/users']);
+        done();
+      }, 10);
+    });
+
+    it('should handle error when delete fails', (done) => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      const error = new Error('Delete failed');
+      adminServiceSpy.deleteUser.and.returnValue(throwError(() => error));
+
+      component['onDelete']();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Не удалось удалить пользователя');
+        expect(component['saving']()).toBeFalse();
+        expect(routerSpy.navigate).not.toHaveBeenCalled();
+        done();
+      }, 10);
+    });
+
+    it('should set saving state during delete', (done) => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      adminServiceSpy.deleteUser.and.returnValue(of(undefined));
+
+      component['onDelete']();
+
+      expect(component['saving']()).toBeTrue();
+
+      setTimeout(() => {
+        expect(component['saving']()).toBeFalse();
+        done();
+      }, 10);
+    });
+
+    it('should return early if user is null', () => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      component['user'].set(null);
+      component['onDelete']();
+      expect(adminServiceSpy.deleteUser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onBack', () => {
+    it('should navigate back to users list', () => {
+      component['onBack']();
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin/users']);
+    });
+  });
+
+  describe('getRoleDisplayName', () => {
+    it('should return "Администратор" for admin role', (done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockAdminUser));
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['getRoleDisplayName']()).toBe('Администратор');
+        done();
+      }, 10);
+    });
+
+    it('should return "Пользователь" for user role', (done) => {
+      adminServiceSpy.getUserById.and.returnValue(of(mockUser));
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['getRoleDisplayName']()).toBe('Пользователь');
+        done();
+      }, 10);
+    });
+
+    it('should return empty string when user is null', () => {
+      component['user'].set(null);
+      expect(component['getRoleDisplayName']()).toBe('');
+    });
+  });
+});

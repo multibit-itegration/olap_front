@@ -1,0 +1,130 @@
+<div class="users-container">
+  <!-- Desktop search bar -->
+  <div class="search-bar search-bar-desktop">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M19 19L14.65 14.65" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Поиск пользователей..."
+        [value]="searchQuery()"
+        (input)="onSearchChange($event)"
+      />
+    </div>
+    <button
+      class="filter-btn"
+      [class.active]="true"
+      [title]="sortAsc() ? 'Сортировка: А → Я' : 'Сортировка: Я → А'"
+      (click)="toggleSort()"
+    >
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 4H18M5 10H15M8 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="sort-indicator">{{ sortAsc() ? 'А→Я' : 'Я→А' }}</span>
+    </button>
+  </div>
+
+  <!-- Mobile search bar -->
+  <div class="search-bar search-bar-mobile">
+    <button class="search-icon-btn" (click)="toggleMobileSearch()">
+      <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z" stroke="#29B6F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M19 19L14.65 14.65" stroke="#29B6F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    @if (showMobileSearch()) {
+      <div class="mobile-search-input-wrapper">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Поиск..."
+          [value]="searchQuery()"
+          (input)="onSearchChange($event)"
+          autofocus
+        />
+        <button class="close-search-btn" (click)="toggleMobileSearch()">✕</button>
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка пользователей...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+      <button class="retry-btn" (click)="retry()">Повторить</button>
+    </div>
+  } @else if (filteredUsers().length === 0) {
+    <div class="empty-state">
+      <p>Пользователи не найдены</p>
+    </div>
+  } @else {
+    <!-- Desktop table view -->
+    <div class="table-container table-view-desktop">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Имя пользователя</th>
+            <th>Базы</th>
+            <th>Роль</th>
+            <th class="settings-col">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" stroke="#666" stroke-width="1.5"/>
+                <path d="M16.25 10C16.25 10.5 16.25 11 16.125 11.5L18 12.75L16.5 15.25L14.375 14.5C13.875 14.875 13.375 15.25 12.75 15.5L12.5 17.75H9.5L9.25 15.5C8.625 15.25 8.125 14.875 7.625 14.5L5.5 15.25L4 12.75L5.875 11.5C5.75 11 5.75 10.5 5.75 10C5.75 9.5 5.75 9 5.875 8.5L4 7.25L5.5 4.75L7.625 5.5C8.125 5.125 8.625 4.75 9.25 4.5L9.5 2.25H12.5L12.75 4.5C13.375 4.75 13.875 5.125 14.375 5.5L16.5 4.75L18 7.25L16.125 8.5C16.25 9 16.25 9.5 16.25 10Z" stroke="#666" stroke-width="1.5"/>
+              </svg>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of filteredUsers(); track trackByUserId($index, user)) {
+            <tr class="user-row" (click)="onUserClick(user)">
+              <td class="user-name">{{ user.name }}</td>
+              <td class="user-connections" [title]="getConnectionsTooltip(user)">
+                {{ getConnectionsDisplay(user) }}
+              </td>
+              <td class="user-role">
+                <span class="role-badge" [class.role-admin]="user.role === 'admin'">
+                  {{ user.role === 'admin' ? 'Администратор' : 'Пользователь' }}
+                </span>
+              </td>
+              <td class="settings-col">
+                <button class="settings-btn" (click)="onUserSettings(user, $event)" title="Настройки пользователя">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" stroke="#666" stroke-width="1.5"/>
+                    <path d="M16.25 10C16.25 10.5 16.25 11 16.125 11.5L18 12.75L16.5 15.25L14.375 14.5C13.875 14.875 13.375 15.25 12.75 15.5L12.5 17.75H9.5L9.25 15.5C8.625 15.25 8.125 14.875 7.625 14.5L5.5 15.25L4 12.75L5.875 11.5C5.75 11 5.75 10.5 5.75 10C5.75 9.5 5.75 9 5.875 8.5L4 7.25L5.5 4.75L7.625 5.5C8.125 5.125 8.625 4.75 9.25 4.5L9.5 2.25H12.5L12.75 4.5C13.375 4.75 13.875 5.125 14.375 5.5L16.5 4.75L18 7.25L16.125 8.5C16.25 9 16.25 9.5 16.25 10Z" stroke="#666" stroke-width="1.5"/>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile card view -->
+    <div class="user-cards-mobile">
+      @for (user of filteredUsers(); track trackByUserId($index, user)) {
+        <div class="user-card" (click)="onUserClick(user)">
+          <div class="user-card-content">
+            <div class="user-card-left">
+              <div class="user-card-name">{{ user.name }}</div>
+              <div class="user-card-database">{{ getConnectionsDisplay(user) }}</div>
+            </div>
+            <button class="user-card-settings" (click)="onUserSettings(user, $event)" title="Настройки">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" stroke="#666" stroke-width="1.5"/>
+                <path d="M16.25 10C16.25 10.5 16.25 11 16.125 11.5L18 12.75L16.5 15.25L14.375 14.5C13.875 14.875 13.375 15.25 12.75 15.5L12.5 17.75H9.5L9.25 15.5C8.625 15.25 8.125 14.875 7.625 14.5L5.5 15.25L4 12.75L5.875 11.5C5.75 11 5.75 10.5 5.75 10C5.75 9.5 5.75 9 5.875 8.5L4 7.25L5.5 4.75L7.625 5.5C8.125 5.125 8.625 4.75 9.25 4.5L9.5 2.25H12.5L12.75 4.5C13.375 4.75 13.875 5.125 14.375 5.5L16.5 4.75L18 7.25L16.125 8.5C16.25 9 16.25 9.5 16.25 10Z" stroke="#666" stroke-width="1.5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

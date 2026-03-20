@@ -1,0 +1,484 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { AdminUsersComponent } from './admin-users.component';
+import { AdminService } from '../../../core/api/admin.service';
+import { Router } from '@angular/router';
+import { of, throwError } from 'rxjs';
+import { User } from '../../../core/api/models/user.models';
+import { IikoConnection } from '../../../core/api/models/admin.models';
+
+describe('AdminUsersComponent', () => {
+  let component: AdminUsersComponent;
+  let fixture: ComponentFixture<AdminUsersComponent>;
+  let adminServiceSpy: jasmine.SpyObj<AdminService>;
+  let routerSpy: jasmine.SpyObj<Router>;
+
+  const mockUsers: User[] = [
+    {
+      id: 1,
+      name: 'Анна Иванова',
+      phone: '+1234567890',
+      email: 'anna@test.com',
+      telegram_id: null,
+      role: 'user'
+    },
+    {
+      id: 2,
+      name: 'Борис Петров',
+      phone: '+0987654321',
+      email: 'boris@test.com',
+      telegram_id: 12345,
+      role: 'admin'
+    },
+    {
+      id: 3,
+      name: 'Виктор Сидоров',
+      phone: '+1111111111',
+      email: null,
+      telegram_id: null,
+      role: 'user'
+    }
+  ];
+
+  const mockIikoConnections: IikoConnection[] = [
+    {
+      id: 1,
+      host: 'test1.iiko.com',
+      path: '/api',
+      port: 443,
+      username_iiko: 'user1',
+      password_iiko: 'pass1',
+      name: 'Connection 1'
+    },
+    {
+      id: 2,
+      host: 'test2.iiko.com',
+      path: '/api',
+      port: 443,
+      username_iiko: 'user2',
+      password_iiko: 'pass2',
+      name: 'Connection 2'
+    },
+    {
+      id: 3,
+      host: 'test3.iiko.com',
+      path: '/api',
+      port: 443,
+      username_iiko: 'user3',
+      password_iiko: 'pass3',
+      name: 'Connection 3'
+    }
+  ];
+
+  beforeEach(async () => {
+    const adminServiceSpyObj = jasmine.createSpyObj('AdminService', [
+      'getAllUsers',
+      'getIikoConnectionsByUserId'
+    ]);
+    const routerSpyObj = jasmine.createSpyObj('Router', ['navigate']);
+
+    await TestBed.configureTestingModule({
+      imports: [AdminUsersComponent],
+      providers: [
+        { provide: AdminService, useValue: adminServiceSpyObj },
+        { provide: Router, useValue: routerSpyObj }
+      ]
+    }).compileComponents();
+
+    adminServiceSpy = TestBed.inject(AdminService) as jasmine.SpyObj<AdminService>;
+    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+
+    fixture = TestBed.createComponent(AdminUsersComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  describe('ngOnInit and loadUsers', () => {
+    it('should load users on initialization', (done) => {
+      adminServiceSpy.getAllUsers.and.returnValue(of(mockUsers));
+      adminServiceSpy.getIikoConnectionsByUserId.and.returnValue(of([]));
+
+      fixture.detectChanges(); // triggers ngOnInit
+
+      setTimeout(() => {
+        expect(adminServiceSpy.getAllUsers).toHaveBeenCalled();
+        expect(component['users']().length).toBe(3);
+        expect(component['loading']()).toBeFalse();
+        expect(component['error']()).toBeNull();
+        done();
+      }, 10);
+    });
+
+    it('should set loading state during data fetch', () => {
+      adminServiceSpy.getAllUsers.and.returnValue(of(mockUsers));
+      adminServiceSpy.getIikoConnectionsByUserId.and.returnValue(of([]));
+
+      expect(component['loading']()).toBeTrue();
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['loading']()).toBeFalse();
+      }, 10);
+    });
+
+    it('should handle error when loading users fails', (done) => {
+      const error = new Error('Network error');
+      adminServiceSpy.getAllUsers.and.returnValue(throwError(() => error));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['error']()).toBe('Не удалось загрузить пользователей');
+        expect(component['loading']()).toBeFalse();
+        expect(component['users']().length).toBe(0);
+        done();
+      }, 10);
+    });
+
+    it('should initialize users with empty iiko connections and loading state', (done) => {
+      adminServiceSpy.getAllUsers.and.returnValue(of(mockUsers));
+      adminServiceSpy.getIikoConnectionsByUserId.and.returnValue(of([]));
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        const users = component['users']();
+        users.forEach(user => {
+          expect(user.iikoConnections).toBeDefined();
+          expect(user.iikoConnectionsLoading).toBeDefined();
+        });
+        done();
+      }, 10);
+    });
+  });
+
+  describe('loadIikoConnections', () => {
+    it('should load iiko connections for each user', (done) => {
+      adminServiceSpy.getAllUsers.and.returnValue(of([mockUsers[0]]));
+      adminServiceSpy.getIikoConnectionsByUserId.and.returnValue(
+        of([mockIikoConnections[0]])
+      );
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.getIikoConnectionsByUserId).toHaveBeenCalledWith(1);
+        const users = component['users']();
+        expect(users[0].iikoConnections.length).toBe(1);
+        expect(users[0].iikoConnectionsLoading).toBeFalse();
+        done();
+      }, 100);
+    });
+
+    it('should handle errors when loading iiko connections', (done) => {
+      adminServiceSpy.getAllUsers.and.returnValue(of([mockUsers[0]]));
+      adminServiceSpy.getIikoConnectionsByUserId.and.returnValue(
+        throwError(() => new Error('Connection error'))
+      );
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        const users = component['users']();
+        expect(users[0].iikoConnections).toEqual([]);
+        expect(users[0].iikoConnectionsLoading).toBeFalse();
+        done();
+      }, 100);
+    });
+
+    it('should load connections for multiple users', (done) => {
+      adminServiceSpy.getAllUsers.and.returnValue(of(mockUsers));
+      adminServiceSpy.getIikoConnectionsByUserId.and.returnValues(
+        of([mockIikoConnections[0]]),
+        of([mockIikoConnections[1]]),
+        of([])
+      );
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(adminServiceSpy.getIikoConnectionsByUserId).toHaveBeenCalledTimes(3);
+        expect(adminServiceSpy.getIikoConnectionsByUserId).toHaveBeenCalledWith(1);
+        expect(adminServiceSpy.getIikoConnectionsByUserId).toHaveBeenCalledWith(2);
+        expect(adminServiceSpy.getIikoConnectionsByUserId).toHaveBeenCalledWith(3);
+        done();
+      }, 100);
+    });
+  });
+
+  describe('Search filtering', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getAllUsers.and.returnValue(of(mockUsers));
+      adminServiceSpy.getIikoConnectionsByUserId.and.returnValue(of([]));
+      fixture.detectChanges();
+      setTimeout(done, 50);
+    });
+
+    it('should filter users by name (case insensitive)', () => {
+      component['onSearchChange']('анна');
+      const filtered = component['filteredUsers']();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].name).toBe('Анна Иванова');
+    });
+
+    it('should filter users by partial name match', () => {
+      component['onSearchChange']('ов');
+      const filtered = component['filteredUsers']();
+      expect(filtered.length).toBe(3);
+      expect(filtered.some(u => u.name.includes('Иванова'))).toBeTrue();
+      expect(filtered.some(u => u.name.includes('Петров'))).toBeTrue();
+      expect(filtered.some(u => u.name.includes('Сидоров'))).toBeTrue();
+    });
+
+    it('should return all users when search query is empty', () => {
+      component['onSearchChange']('');
+      const filtered = component['filteredUsers']();
+      expect(filtered.length).toBe(3);
+    });
+
+    it('should return empty array when no users match search', () => {
+      component['onSearchChange']('несуществующий');
+      const filtered = component['filteredUsers']();
+      expect(filtered.length).toBe(0);
+    });
+
+    it('should trim search query before filtering', () => {
+      component['onSearchChange']('  анна  ');
+      const filtered = component['filteredUsers']();
+      expect(filtered.length).toBe(1);
+    });
+
+    it('should handle Cyrillic characters in search', () => {
+      component['onSearchChange']('Борис');
+      const filtered = component['filteredUsers']();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].name).toBe('Борис Петров');
+    });
+  });
+
+  describe('Sorting', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getAllUsers.and.returnValue(of(mockUsers));
+      adminServiceSpy.getIikoConnectionsByUserId.and.returnValue(of([]));
+      fixture.detectChanges();
+      setTimeout(done, 50);
+    });
+
+    it('should sort users A→Z by default (ascending)', () => {
+      const filtered = component['filteredUsers']();
+      expect(filtered[0].name).toBe('Анна Иванова');
+      expect(filtered[1].name).toBe('Борис Петров');
+      expect(filtered[2].name).toBe('Виктор Сидоров');
+    });
+
+    it('should sort users Z→A when toggled (descending)', () => {
+      component['toggleSort']();
+      const filtered = component['filteredUsers']();
+      expect(filtered[0].name).toBe('Виктор Сидоров');
+      expect(filtered[1].name).toBe('Борис Петров');
+      expect(filtered[2].name).toBe('Анна Иванова');
+    });
+
+    it('should toggle between ascending and descending', () => {
+      expect(component['sortAsc']()).toBeTrue();
+      component['toggleSort']();
+      expect(component['sortAsc']()).toBeFalse();
+      component['toggleSort']();
+      expect(component['sortAsc']()).toBeTrue();
+    });
+
+    it('should use Russian locale for sorting', (done) => {
+      // This test needs a fresh component with different data
+      const testUsers: User[] = [
+        { id: 10, name: 'Яков', phone: '+1111111111', email: null, telegram_id: null, role: 'user' },
+        { id: 11, name: 'Алексей', phone: '+2222222222', email: null, telegram_id: null, role: 'user' },
+        { id: 12, name: 'Игорь', phone: '+3333333333', email: null, telegram_id: null, role: 'user' }
+      ];
+
+      // Create a new component fixture for this test
+      const testAdminServiceSpy = jasmine.createSpyObj('AdminService', [
+        'getAllUsers',
+        'getIikoConnectionsByUserId'
+      ]);
+      testAdminServiceSpy.getAllUsers.and.returnValue(of(testUsers));
+      testAdminServiceSpy.getIikoConnectionsByUserId.and.returnValue(of([]));
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        imports: [AdminUsersComponent],
+        providers: [
+          { provide: AdminService, useValue: testAdminServiceSpy },
+          { provide: Router, useValue: routerSpy }
+        ]
+      });
+
+      const testFixture = TestBed.createComponent(AdminUsersComponent);
+      const testComponent = testFixture.componentInstance;
+      testFixture.detectChanges();
+
+      setTimeout(() => {
+        const filtered = testComponent['filteredUsers']();
+        expect(filtered[0].name).toBe('Алексей');
+        expect(filtered[1].name).toBe('Игорь');
+        expect(filtered[2].name).toBe('Яков');
+        done();
+      }, 50);
+    });
+
+    it('should maintain sort order after search', () => {
+      component['onSearchChange']('ов');
+      component['toggleSort']();
+      const filtered = component['filteredUsers']();
+      // After searching for "ов", we get Иванова, Петров, Сидоров
+      // After Z→A sort, should be reversed alphabetically
+      expect(filtered[0].name).toBe('Виктор Сидоров');
+      expect(filtered[1].name).toBe('Борис Петров');
+      expect(filtered[2].name).toBe('Анна Иванова');
+    });
+  });
+
+  describe('getConnectionsDisplay', () => {
+    let userWithConnections: any;
+
+    beforeEach(() => {
+      userWithConnections = {
+        ...mockUsers[0],
+        iikoConnections: [],
+        iikoConnectionsLoading: false
+      };
+    });
+
+    it('should return "Загрузка..." when connections are loading', () => {
+      userWithConnections.iikoConnectionsLoading = true;
+      const display = component['getConnectionsDisplay'](userWithConnections);
+      expect(display).toBe('Загрузка...');
+    });
+
+    it('should return "—" when user has no connections', () => {
+      userWithConnections.iikoConnections = [];
+      const display = component['getConnectionsDisplay'](userWithConnections);
+      expect(display).toBe('—');
+    });
+
+    it('should return connection name when user has 1 connection', () => {
+      userWithConnections.iikoConnections = [mockIikoConnections[0]];
+      const display = component['getConnectionsDisplay'](userWithConnections);
+      expect(display).toBe('Connection 1');
+    });
+
+    it('should return both names when user has 2 connections', () => {
+      userWithConnections.iikoConnections = [
+        mockIikoConnections[0],
+        mockIikoConnections[1]
+      ];
+      const display = component['getConnectionsDisplay'](userWithConnections);
+      expect(display).toBe('Connection 1, Connection 2');
+    });
+
+    it('should truncate and add ellipsis when user has more than 2 connections', () => {
+      userWithConnections.iikoConnections = mockIikoConnections;
+      const display = component['getConnectionsDisplay'](userWithConnections);
+      expect(display).toBe('Connection 1, Connection 2...');
+    });
+  });
+
+  describe('getConnectionsTooltip', () => {
+    let userWithConnections: any;
+
+    beforeEach(() => {
+      userWithConnections = {
+        ...mockUsers[0],
+        iikoConnections: [],
+        iikoConnectionsLoading: false
+      };
+    });
+
+    it('should return empty string when connections are loading', () => {
+      userWithConnections.iikoConnectionsLoading = true;
+      const tooltip = component['getConnectionsTooltip'](userWithConnections);
+      expect(tooltip).toBe('');
+    });
+
+    it('should return empty string when user has no connections', () => {
+      userWithConnections.iikoConnections = [];
+      const tooltip = component['getConnectionsTooltip'](userWithConnections);
+      expect(tooltip).toBe('');
+    });
+
+    it('should return all connection names joined with comma', () => {
+      userWithConnections.iikoConnections = mockIikoConnections;
+      const tooltip = component['getConnectionsTooltip'](userWithConnections);
+      expect(tooltip).toBe('Connection 1, Connection 2, Connection 3');
+    });
+
+    it('should return single connection name', () => {
+      userWithConnections.iikoConnections = [mockIikoConnections[0]];
+      const tooltip = component['getConnectionsTooltip'](userWithConnections);
+      expect(tooltip).toBe('Connection 1');
+    });
+  });
+
+  describe('trackByUserId', () => {
+    it('should return user ID', () => {
+      const user: any = { ...mockUsers[0], iikoConnections: [], iikoConnectionsLoading: false };
+      const result = component['trackByUserId'](0, user);
+      expect(result).toBe(1);
+    });
+
+    it('should return different IDs for different users', () => {
+      const user1: any = { ...mockUsers[0], iikoConnections: [], iikoConnectionsLoading: false };
+      const user2: any = { ...mockUsers[1], iikoConnections: [], iikoConnectionsLoading: false };
+
+      expect(component['trackByUserId'](0, user1)).toBe(1);
+      expect(component['trackByUserId'](1, user2)).toBe(2);
+    });
+  });
+
+  describe('onUserSettings', () => {
+    it('should navigate to user settings page with user ID', () => {
+      const user: any = { ...mockUsers[0], iikoConnections: [], iikoConnectionsLoading: false };
+      component['onUserSettings'](user);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin/users', 1]);
+    });
+
+    it('should navigate with correct ID for different users', () => {
+      const user: any = { ...mockUsers[1], iikoConnections: [], iikoConnectionsLoading: false };
+      component['onUserSettings'](user);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin/users', 2]);
+    });
+  });
+
+  describe('Integration: filtering and sorting together', () => {
+    beforeEach((done) => {
+      adminServiceSpy.getAllUsers.and.returnValue(of(mockUsers));
+      adminServiceSpy.getIikoConnectionsByUserId.and.returnValue(of([]));
+      fixture.detectChanges();
+      setTimeout(done, 50);
+    });
+
+    it('should apply both search and sort correctly', () => {
+      component['onSearchChange']('ов');
+      component['toggleSort']();
+      const filtered = component['filteredUsers']();
+
+      expect(filtered.length).toBe(3);
+      expect(filtered[0].name).toContain('ов');
+      expect(filtered[1].name).toContain('ов');
+      expect(filtered[2].name).toContain('ов');
+      // Should be sorted Z→A
+      expect(filtered[0].name > filtered[1].name).toBeTrue();
+      expect(filtered[1].name > filtered[2].name).toBeTrue();
+    });
+
+    it('should create new array when sorting (immutability)', () => {
+      const before = component['filteredUsers']();
+      component['toggleSort']();
+      const after = component['filteredUsers']();
+
+      expect(before).not.toBe(after); // Different array instances
+    });
+  });
+});
