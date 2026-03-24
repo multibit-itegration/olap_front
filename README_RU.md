@@ -61,10 +61,10 @@ npm run build
 
 ## API
 
-Backend API: `http://213.226.124.110:8000/docs`
+Backend API: `https://api.olapsender.ru/docs`
 
 Proxy настроен в `proxy.conf.json`:
-- Все запросы на `/api/*` будут перенаправлены на `http://213.226.124.110:8000/*`
+- Все запросы на `/api/*` будут перенаправлены на `https://api.olapsender.ru/*`
 
 ## Реализованные страницы
 
