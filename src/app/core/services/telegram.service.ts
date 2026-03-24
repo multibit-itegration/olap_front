@@ -141,9 +141,6 @@ export class TelegramService {
     }
 
     // We are inside Telegram WebApp with valid initData
-    // TODO: убрать после настройки бэкенд авторизации
-    console.log('[TelegramService] initData:', initData);
-    console.log('[TelegramService] initDataUnsafe:', JSON.stringify(telegram.initDataUnsafe, null, 2));
     this._isTelegramWebApp.set(true);
     this._initData.set(initData);
 

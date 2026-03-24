@@ -1,22 +1,6 @@
 <div class="auth-container">
   <h1 class="auth-title">ВХОД</h1>
 
-  <!-- TODO: убрать после настройки бэкенд авторизации -->
-  @if (debugInitData()) {
-    <div style="margin-bottom: 16px; padding: 12px; background: #1a1a2e; border: 1px solid #444; border-radius: 8px;">
-      <p style="color: #aaa; font-size: 12px; margin: 0 0 8px;">initData (для бэкенда):</p>
-      <div style="word-break: break-all; font-size: 11px; color: #0f0; font-family: monospace; max-height: 120px; overflow-y: auto; margin-bottom: 8px;">
-        {{ debugInitData() }}
-      </div>
-      <button
-        type="button"
-        (click)="copyInitData()"
-        style="width: 100%; padding: 8px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-size: 13px;"
-      >
-        {{ debugCopied() ? 'Скопировано!' : 'Копировать initData' }}
-      </button>
-    </div>
-  }
 
   <div class="auth-card">
     @if (isTelegramAuthInProgress()) {

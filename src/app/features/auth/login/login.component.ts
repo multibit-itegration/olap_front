@@ -30,9 +30,7 @@ export class LoginComponent implements OnInit {
   isSubmitting = signal(false);
   isTelegramAuthInProgress = signal(false);
   showLoginForm = signal(true);
-  // TODO: убрать после настройки бэкенд авторизации
-  debugInitData = signal('');
-  debugCopied = signal(false);
+
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -46,12 +44,6 @@ export class LoginComponent implements OnInit {
     if (this.authService.isAuthenticated() && this.authService.currentUser()) {
       this.redirectByRole();
       return;
-    }
-
-    // TODO: убрать после настройки бэкенд авторизации
-    const initData = this.telegramService.initData();
-    if (initData) {
-      this.debugInitData.set(initData);
     }
 
     // Attempt Telegram auto-auth if available
@@ -145,14 +137,6 @@ export class LoginComponent implements OnInit {
             this.errorMessage.set('Произошла ошибка при входе');
         }
       }
-    });
-  }
-
-  // TODO: убрать после настройки бэкенд авторизации
-  copyInitData(): void {
-    navigator.clipboard.writeText(this.debugInitData()).then(() => {
-      this.debugCopied.set(true);
-      setTimeout(() => this.debugCopied.set(false), 2000);
     });
   }
 
