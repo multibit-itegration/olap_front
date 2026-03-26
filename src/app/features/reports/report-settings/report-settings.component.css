@@ -43,7 +43,7 @@
 .field-input:focus{outline:none;border-color:#29B6F6;background-color:#f8f9fa}
 .field-input:disabled{opacity:.6;cursor:not-allowed;background-color:#e0e0e0}
 select.field-input{cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%23333' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
-input[type="time"].field-input{-webkit-appearance:none;appearance:none;max-width:100%;overflow:hidden}
+input[type="time"].field-input{max-width:100%;overflow:hidden;text-align:left}
 .save-schedule-btn{align-self:flex-end;padding:12px 32px;background:linear-gradient(135deg,#00e676 0%,#69f0ae 100%);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,230,118,.3);transition:all .2s ease}
 .save-schedule-btn:hover:not(:disabled){box-shadow:0 4px 12px rgba(0,230,118,.4);transform:translateY(-2px)}
 .save-schedule-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}

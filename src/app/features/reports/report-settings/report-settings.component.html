@@ -126,7 +126,7 @@
                   [disabled]="individualScheduleSaving()"
                 >
                   @for (option of frequencyOptions; track option.value) {
-                    <option [value]="option.value" [selected]="option.value === individualFrequency()">{{ option.label }}</option>
+                    <option [value]="option.value">{{ option.label }}</option>
                   }
                 </select>
               </div>
@@ -152,7 +152,7 @@
                     [disabled]="individualScheduleSaving()"
                   >
                     @for (option of weekdayOptions; track option.value) {
-                      <option [value]="option.value" [selected]="option.value === individualWeekday()">{{ option.label }}</option>
+                      <option [value]="option.value">{{ option.label }}</option>
                     }
                   </select>
                 </div>
@@ -195,7 +195,7 @@
                   [disabled]="individualScheduleSaving()"
                 >
                   @for (tz of timezoneOptions; track tz.value) {
-                    <option [value]="tz.value" [selected]="tz.value === individualTimezone()">{{ tz.label }}</option>
+                    <option [value]="tz.value">{{ tz.label }}</option>
                   }
                 </select>
               </div>
@@ -284,7 +284,7 @@
                     [disabled]="groupScheduleSaving()"
                   >
                     @for (option of frequencyOptions; track option.value) {
-                      <option [value]="option.value" [selected]="option.value === groupFrequency()">{{ option.label }}</option>
+                      <option [value]="option.value">{{ option.label }}</option>
                     }
                   </select>
                 </div>
@@ -310,7 +310,7 @@
                       [disabled]="groupScheduleSaving()"
                     >
                       @for (option of weekdayOptions; track option.value) {
-                        <option [value]="option.value" [selected]="option.value === groupWeekday()">{{ option.label }}</option>
+                        <option [value]="option.value">{{ option.label }}</option>
                       }
                     </select>
                   </div>
@@ -353,7 +353,7 @@
                     [disabled]="groupScheduleSaving()"
                   >
                     @for (tz of timezoneOptions; track tz.value) {
-                      <option [value]="tz.value" [selected]="tz.value === groupTimezone()">{{ tz.label }}</option>
+                      <option [value]="tz.value">{{ tz.label }}</option>
                     }
                   </select>
                 </div>
