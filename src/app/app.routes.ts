@@ -44,6 +44,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/user/linked-chats/linked-chats.component').then(m => m.LinkedChatsComponent)
       },
       {
+        path: 'profile',
+        loadComponent: () => import('./features/user/profile/user-profile.component').then(m => m.UserProfileComponent)
+      },
+      {
         path: 'dashboard',
         redirectTo: 'databases',
         pathMatch: 'full'

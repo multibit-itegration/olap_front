@@ -58,6 +58,50 @@
   cursor: not-allowed;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.profile-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.profile-btn.active {
+  background-color: white;
+  color: #29B6F6;
+  border-color: white;
+}
+
+.profile-icon {
+  flex-shrink: 0;
+}
+
+.profile-name {
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .logout-btn {
   padding: 8px 20px;
   background-color: rgba(255, 255, 255, 0.2);
@@ -107,10 +151,17 @@
     display: none;
   }
 
-  .logout-btn {
+  .header-actions {
     position: absolute;
     top: 12px;
     right: 12px;
+  }
+
+  .profile-btn {
+    display: none; /* Hide profile button on mobile, use bottom nav instead */
+  }
+
+  .logout-btn {
     padding: 6px 12px;
     font-size: 13px;
   }
