@@ -13,7 +13,7 @@ export class UserService {
     return this.apiClient.get<User>('/users/me');
   }
 
-  updateProfile(data: UserProfileUpdateRequest): Observable<UserProfileUpdateResponse> {
-    return this.apiClient.patch<UserProfileUpdateResponse>('/users/me', data);
+  updateProfile(userId: number, data: UserProfileUpdateRequest): Observable<UserProfileUpdateResponse> {
+    return this.apiClient.patch<UserProfileUpdateResponse>(`/users/edit/${userId}`, data);
   }
 }

@@ -133,7 +133,13 @@ export class UserProfileComponent implements OnInit {
 
     this.saving.set(true);
 
-    this.userService.updateProfile(updateData).pipe(
+    const userId = this.authService.currentUser()?.id;
+    if (!userId) {
+      this.error.set('Не удалось определить пользователя');
+      return;
+    }
+
+    this.userService.updateProfile(userId, updateData).pipe(
       takeUntilDestroyed(this.destroyRef),
       catchError((err) => {
         if (err.status === 409) {
