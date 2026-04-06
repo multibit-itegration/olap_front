@@ -38,7 +38,7 @@
 .schedule-error p{color:#d32f2f;margin:0;font-size:14px}
 .schedule-field-item{flex:1;display:flex;flex-direction:column;gap:8px}
 .field-label{font-size:13px;font-weight:600;color:#555;text-align:center}
-.field-input{padding:10px 14px;background-color:#fff;border:2px solid #d0d0d0;border-radius:8px;font-size:14px;color:#333;transition:all .2s ease;width:100%}
+.field-input{padding:10px 14px;background-color:#fff;border:2px solid #d0d0d0;border-radius:8px;font-size:16px;color:#333;transition:all .2s ease;width:100%}
 .field-input:hover:not(:disabled){border-color:#29B6F6}
 .field-input:focus{outline:none;border-color:#29B6F6;background-color:#f8f9fa}
 .field-input:disabled{opacity:.6;cursor:not-allowed;background-color:#e0e0e0}
