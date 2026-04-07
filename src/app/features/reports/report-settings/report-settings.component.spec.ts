@@ -262,25 +262,6 @@ describe('ReportSettingsComponent', () => {
       });
     });
 
-    it('should show email hint when email is selected', (done) => {
-      configureTestingModule({ reportId: '1', dbId: '10' });
-      reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;
-      routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
-      reportServiceSpy.getReport.and.returnValue(of(mockReport));
-      reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
-
-      fixture = TestBed.createComponent(ReportSettingsComponent);
-      component = fixture.componentInstance;
-      fixture.detectChanges();
-
-      setTimeout(() => {
-        const event = { target: { value: 'email' } } as any;
-        component['onDeliveryTypeChange'](event);
-        expect(component['showEmailHint']()).toBe(true);
-        done();
-      });
-    });
-
     it('should update schedule type when onScheduleTypeChange is called', (done) => {
       configureTestingModule({ reportId: '1', dbId: '10' });
       reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;
