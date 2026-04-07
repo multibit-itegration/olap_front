@@ -27,14 +27,12 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
 
   // Timeout IDs for cleanup
-  private emailHintTimeoutId?: number;
   private featureRequestTimeoutId?: number;
 
   protected readonly report = signal<Report | null>(null);
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
   protected readonly updating = signal<boolean>(false);
-  protected readonly showEmailHint = signal<boolean>(false);
   protected readonly showFeatureRequest = signal<boolean>(false);
   protected readonly featureRequested = signal<boolean>(false);
   protected readonly saving = signal<boolean>(false);
@@ -198,14 +196,42 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
 
     this.selectedDeliveryType.set(deliveryType);
 
-    if (deliveryType === 'email') {
-      this.showEmailHint.set(true);
-      // Clear previous timeout if exists
-      if (this.emailHintTimeoutId !== undefined) {
-        clearTimeout(this.emailHintTimeoutId);
+    // Автоматически сохраняем изменение delivery_type
+    this.saveDeliveryType();
+  }
+
+  private saveDeliveryType(): void {
+    if (this.saving()) return;
+
+    const rep = this.report();
+    if (!rep) return;
+
+    // Проверяем, изменился ли delivery_type
+    const currentDeliveryType = rep.delivery_type || this.defaultDeliveryType();
+    if (this.selectedDeliveryType() === currentDeliveryType) return;
+
+    this.saving.set(true);
+    this.error.set(null);
+
+    const update = {
+      delivery_type: this.selectedDeliveryType()
+    };
+
+    this.reportService.updateReport(this.reportId(), update).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError((err: HttpErrorResponse) => {
+        this.error.set('Не удалось сохранить канал рассылки');
+        this.saving.set(false);
+        return of(null);
+      })
+    ).subscribe(updatedReport => {
+      if (updatedReport) {
+        this.report.set(updatedReport);
+        // Синхронизируем локальное состояние с ответом сервера
+        this.selectedDeliveryType.set(updatedReport.delivery_type || this.defaultDeliveryType());
       }
-      this.emailHintTimeoutId = window.setTimeout(() => this.showEmailHint.set(false), 3000);
-    }
+      this.saving.set(false);
+    });
   }
 
   protected onScheduleTypeChange(event: Event): void {
@@ -639,9 +665,6 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     // Clean up all timeouts
-    if (this.emailHintTimeoutId !== undefined) {
-      clearTimeout(this.emailHintTimeoutId);
-    }
     if (this.featureRequestTimeoutId !== undefined) {
       clearTimeout(this.featureRequestTimeoutId);
     }

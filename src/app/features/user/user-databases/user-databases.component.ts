@@ -96,6 +96,7 @@ export class UserDatabasesComponent implements OnInit {
   }
 
   protected onReports(database: IikoConnection): void {
+    console.log('onReports clicked', database.id);
     this.router.navigate(['/user/databases', database.id, 'reports']);
   }
 

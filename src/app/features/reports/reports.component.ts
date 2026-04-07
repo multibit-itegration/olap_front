@@ -142,29 +142,34 @@ export class ReportsComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    const dbIdParam = this.route.snapshot.paramMap.get('dbId');
-    if (!dbIdParam) {
-      this.goBack();
-      return;
-    }
-
-    const parsedDbId = parseInt(dbIdParam, 10);
-    if (isNaN(parsedDbId)) {
-      this.goBack();
-      return;
-    }
-
-    this.dbId.set(parsedDbId);
-
-    const idParam = this.route.snapshot.paramMap.get('id');
-    if (idParam) {
-      const parsedUserId = parseInt(idParam, 10);
-      if (!isNaN(parsedUserId)) {
-        this.userId.set(parsedUserId);
+    // Subscribe to route params to handle component reuse
+    this.route.paramMap.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(params => {
+      const dbIdParam = params.get('dbId');
+      if (!dbIdParam) {
+        this.goBack();
+        return;
       }
-    }
 
-    this.loadReports();
+      const parsedDbId = parseInt(dbIdParam, 10);
+      if (isNaN(parsedDbId)) {
+        this.goBack();
+        return;
+      }
+
+      this.dbId.set(parsedDbId);
+
+      const idParam = params.get('id');
+      if (idParam) {
+        const parsedUserId = parseInt(idParam, 10);
+        if (!isNaN(parsedUserId)) {
+          this.userId.set(parsedUserId);
+        }
+      }
+
+      this.loadReports();
+    });
   }
 
   private loadReports(): void {
@@ -469,7 +474,7 @@ export class ReportsComponent implements OnInit {
     if (this.userId()) {
       this.router.navigate(['/admin/users', this.userId(), 'databases']);
     } else {
-      this.router.navigate(['/user/dashboard']);
+      this.router.navigate(['/user/databases']);
     }
   }
 
