@@ -187,12 +187,11 @@
                 <label class="field-label">Часовой пояс</label>
                 <select
                   class="field-input"
-                  [value]="individualTimezone()"
                   (change)="onIndividualTimezoneChange($event)"
                   [disabled]="individualScheduleSaving()"
                 >
                   @for (tz of timezoneOptions; track tz.value) {
-                    <option [value]="tz.value">{{ tz.label }}</option>
+                    <option [value]="tz.value" [selected]="tz.value === individualTimezone()">{{ tz.label }}</option>
                   }
                 </select>
               </div>
@@ -345,12 +344,11 @@
                   <label class="field-label">Часовой пояс</label>
                   <select
                     class="field-input"
-                    [value]="groupTimezone()"
                     (change)="onGroupTimezoneChange($event)"
                     [disabled]="groupScheduleSaving()"
                   >
                     @for (tz of timezoneOptions; track tz.value) {
-                      <option [value]="tz.value">{{ tz.label }}</option>
+                      <option [value]="tz.value" [selected]="tz.value === groupTimezone()">{{ tz.label }}</option>
                     }
                   </select>
                 </div>
