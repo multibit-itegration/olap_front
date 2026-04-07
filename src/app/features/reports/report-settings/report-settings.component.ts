@@ -214,7 +214,9 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
     this.error.set(null);
 
     const update = {
-      delivery_type: this.selectedDeliveryType()
+      format: this.selectedFormat(),
+      delivery_type: this.selectedDeliveryType(),
+      schedule_type: this.selectedScheduleType()
     };
 
     this.reportService.updateReport(this.reportId(), update).pipe(
