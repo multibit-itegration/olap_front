@@ -46,7 +46,7 @@
         <thead>
           <tr>
             <th>ID</th>
-            <th>User ID</th>
+            <th>Пользователь</th>
             <th>План</th>
             <th>Дата истечения</th>
             <th>Комментарий</th>
@@ -56,7 +56,7 @@
           @for (license of filteredLicenses(); track trackByLicenseId($index, license)) {
             <tr class="clickable-row" (click)="onLicenseClick(license)">
               <td class="license-id">{{ license.id }}</td>
-              <td class="user-id">{{ license.user_id }}</td>
+              <td class="user-id">{{ userName(license.user_id) }}</td>
               <td class="plan">
                 <span class="plan-badge">{{ license.plan }}</span>
               </td>

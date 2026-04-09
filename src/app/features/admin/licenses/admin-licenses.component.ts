@@ -5,7 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AdminService } from '../../../core/api/admin.service';
 import { License } from '../../../core/api/models/admin.models';
-import { of } from 'rxjs';
+import { User } from '../../../core/api/models/user.models';
+import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 @Component({
@@ -22,6 +23,7 @@ export class AdminLicensesComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly licenses = signal<License[]>([]);
+  protected readonly usersById = signal<Map<number, User>>(new Map());
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
   protected readonly searchQuery = signal<string>('');
@@ -31,11 +33,13 @@ export class AdminLicensesComponent implements OnInit {
     const query = this.searchQuery().toLowerCase().trim();
     const asc = this.sortAsc();
 
+    const users = this.usersById();
     let result = this.licenses();
     if (query) {
       result = result.filter(license =>
         license.id.toString().includes(query) ||
         license.user_id.toString().includes(query) ||
+        (users.get(license.user_id)?.name.toLowerCase().includes(query) ?? false) ||
         license.plan.toLowerCase().includes(query) ||
         (license.comment?.toLowerCase().includes(query) ?? false)
       );
@@ -56,17 +60,25 @@ export class AdminLicensesComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.adminService.getAllLicenses().pipe(
+    forkJoin({
+      licenses: this.adminService.getAllLicenses(),
+      users: this.adminService.getAllUsers().pipe(catchError(() => of([] as User[])))
+    }).pipe(
       takeUntilDestroyed(this.destroyRef),
       catchError(() => {
         this.error.set('Не удалось загрузить лицензии');
         this.loading.set(false);
-        return of([]);
+        return of({ licenses: [] as License[], users: [] as User[] });
       })
-    ).subscribe(licenses => {
+    ).subscribe(({ licenses, users }) => {
       this.licenses.set(licenses);
+      this.usersById.set(new Map(users.map(u => [u.id, u])));
       this.loading.set(false);
     });
+  }
+
+  protected userName(userId: number): string {
+    return this.usersById().get(userId)?.name ?? `#${userId}`;
   }
 
   protected onSearchChange(event: Event): void {
