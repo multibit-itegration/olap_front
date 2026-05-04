@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AdminService } from '../../../core/api/admin.service';
 import { License, LicenseUpdateRequest } from '../../../core/api/models/admin.models';
-import { catchError, of } from 'rxjs';
+import { catchError, EMPTY, of } from 'rxjs';
 
 @Component({
   selector: 'app-admin-license-settings',
@@ -174,7 +174,7 @@ export class AdminLicenseSettingsComponent implements OnInit {
       catchError(() => {
         this.error.set('Не удалось удалить лицензию');
         this.saving.set(false);
-        return of(null);
+        return EMPTY;
       })
     ).subscribe(() => {
       this.saving.set(false);

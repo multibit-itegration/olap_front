@@ -75,8 +75,9 @@
                 (change)="onDeliveryTypeChange($event)"
                 [disabled]="saving()"
               >
-                <option value="telegram">Telegram</option>
-                <option value="email">Email</option>
+                @for (option of deliveryTypeOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
               </select>
             </div>
           </div>

@@ -136,6 +136,7 @@ export class UserProfileComponent implements OnInit {
     const userId = this.authService.currentUser()?.id;
     if (!userId) {
       this.error.set('Не удалось определить пользователя');
+      this.saving.set(false);
       return;
     }
 

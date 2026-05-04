@@ -157,12 +157,12 @@ export class AdminUserDatabasesComponent implements OnInit {
       this.formError.set('Имя пользователя обязательно');
       return;
     }
-    if (!this.formPassword().trim()) {
+    const editing = this.editingConnection();
+    if (!editing && !this.formPassword().trim()) {
       this.formError.set('Пароль обязателен');
       return;
     }
 
-    const editing = this.editingConnection();
     if (editing) {
       this.updateConnection(editing.id);
     } else {
@@ -231,9 +231,12 @@ export class AdminUserDatabasesComponent implements OnInit {
       host: this.formHost().trim(),
       path: this.formPath().trim(),
       port: this.formPort(),
-      username_iiko: this.formUsername().trim(),
-      password_iiko: this.formPassword().trim()
+      username_iiko: this.formUsername().trim()
     };
+    const password = this.formPassword().trim();
+    if (password) {
+      data.password_iiko = password;
+    }
 
     this.formLoading.set(true);
     this.formError.set(null);

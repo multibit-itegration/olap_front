@@ -6,7 +6,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { AdminService } from '../../../core/api/admin.service';
 import { User } from '../../../core/api/models/user.models';
 import { UserUpdateRequest } from '../../../core/api/models/admin.models';
-import { catchError, of } from 'rxjs';
+import { catchError, EMPTY, of } from 'rxjs';
 
 @Component({
   selector: 'app-admin-user-settings',
@@ -202,7 +202,7 @@ export class AdminUserSettingsComponent implements OnInit {
           this.error.set('Не удалось удалить пользователя');
         }
         this.saving.set(false);
-        return of(null);
+        return EMPTY;
       })
     ).subscribe(() => {
       this.saving.set(false);

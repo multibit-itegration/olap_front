@@ -96,7 +96,6 @@ export class UserDatabasesComponent implements OnInit {
   }
 
   protected onReports(database: IikoConnection): void {
-    console.log('onReports clicked', database.id);
     this.router.navigate(['/user/databases', database.id, 'reports']);
   }
 
@@ -165,12 +164,12 @@ export class UserDatabasesComponent implements OnInit {
       this.formError.set('Имя пользователя обязательно');
       return;
     }
-    if (!this.formPassword().trim()) {
+    const editing = this.editingConnection();
+    if (!editing && !this.formPassword().trim()) {
       this.formError.set('Пароль обязателен');
       return;
     }
 
-    const editing = this.editingConnection();
     if (editing) {
       this.updateConnection(editing.id);
     } else {
@@ -239,9 +238,12 @@ export class UserDatabasesComponent implements OnInit {
       host: this.formHost().trim(),
       path: this.formPath().trim(),
       port: this.formPort(),
-      username_iiko: this.formUsername().trim(),
-      password_iiko: this.formPassword().trim()
+      username_iiko: this.formUsername().trim()
     };
+    const password = this.formPassword().trim();
+    if (password) {
+      data.password_iiko = password;
+    }
 
     this.formLoading.set(true);
     this.formError.set(null);

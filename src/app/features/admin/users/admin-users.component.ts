@@ -6,8 +6,8 @@ import { Router } from '@angular/router';
 import { AdminService } from '../../../core/api/admin.service';
 import { User } from '../../../core/api/models/user.models';
 import { IikoConnection } from '../../../core/api/models/admin.models';
-import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { from, of } from 'rxjs';
+import { catchError, map, mergeMap, toArray } from 'rxjs/operators';
 
 interface UserWithConnections extends User {
   iikoConnections: IikoConnection[];
@@ -93,18 +93,14 @@ export class AdminUsersComponent implements OnInit {
     //
     // Then replace this method with a single request:
     // this.adminService.getIikoConnectionsByUserIds(users.map(u => u.id))
-    const requests = users.map(user =>
-      this.adminService.getIikoConnectionsByUserId(user.id).pipe(
+    from(users).pipe(
+      mergeMap(user => this.adminService.getIikoConnectionsByUserId(user.id).pipe(
         catchError((error) => {
-          // Handle any error (404, network error, timeout) by returning empty array
-          console.debug(`Failed to load iiko connections for user ${user.id}:`, error.status || 'network error');
           return of([] as IikoConnection[]);
         }),
         map(connections => ({ userId: user.id, connections }))
-      )
-    );
-
-    forkJoin(requests).pipe(
+      ), 6),
+      toArray(),
       takeUntilDestroyed(this.destroyRef),
       catchError(() => {
         // Fallback: if forkJoin itself fails, reset all loading states

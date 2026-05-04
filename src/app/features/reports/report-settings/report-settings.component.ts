@@ -3,11 +3,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, of } from 'rxjs';
+import { catchError, EMPTY, of } from 'rxjs';
 import { ReportService } from '../../../core/api/report.service';
 import { AuthService } from '../../../core/api/auth.service';
 import { LinkedChatsService } from '../../../core/api/linked-chats.service';
-import { Report, ScheduleType, IndividualSchedule, GroupSchedule, ScheduleFrequency, SCHEDULE_FREQUENCY_LABELS, TIMEZONE_CHOICES, WEEKDAY_LABELS } from '../../../core/api/models/report.models';
+import { DeliveryType, Report, ScheduleType, IndividualSchedule, GroupSchedule, ScheduleFrequency, SCHEDULE_FREQUENCY_LABELS, TIMEZONE_CHOICES, WEEKDAY_LABELS } from '../../../core/api/models/report.models';
 import { LinkedChat } from '../../../core/api/models/linked-chats.models';
 
 @Component({
@@ -43,7 +43,7 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
 
   // Local state for selector values (not yet saved)
   protected readonly selectedFormat = signal<string>('pdf');
-  protected readonly selectedDeliveryType = signal<string>('telegram');
+  protected readonly selectedDeliveryType = signal<DeliveryType>('telegram');
   protected readonly selectedScheduleType = signal<ScheduleType>(null);
 
   protected readonly showIndividualSchedule = computed(() => {
@@ -90,11 +90,16 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
   });
 
   protected readonly frequencyOptions = Object.entries(SCHEDULE_FREQUENCY_LABELS).map(([value, label]) => ({ value: value as ScheduleFrequency, label }));
+  protected readonly deliveryTypeOptions: ReadonlyArray<{ value: DeliveryType; label: string }> = [
+    { value: 'telegram', label: 'Telegram' },
+    { value: 'email', label: 'Email' },
+    { value: 'vk', label: 'ВКонтакте' }
+  ];
   protected readonly timezoneOptions = TIMEZONE_CHOICES;
   protected readonly weekdayOptions = [1, 2, 3, 4, 5, 6, 0].map(d => ({ value: d, label: WEEKDAY_LABELS[d] }));
 
   // Default delivery type based on user's telegram_id
-  private readonly defaultDeliveryType = computed<string>(() => {
+  private readonly defaultDeliveryType = computed<DeliveryType>(() => {
     const user = this.authService.currentUser();
     return user?.telegram_id ? 'telegram' : 'email';
   });
@@ -168,7 +173,7 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
         // Sync local state with loaded report
         this.selectedFormat.set(report.format || 'pdf');
         // Use user-specific default delivery type if report has none
-        this.selectedDeliveryType.set(report.delivery_type || this.defaultDeliveryType());
+        this.selectedDeliveryType.set(this.normalizeDeliveryType(report.delivery_type));
         this.selectedScheduleType.set(report.schedule_type);
         this.loading.set(false);
 
@@ -192,7 +197,7 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
 
   protected onDeliveryTypeChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    const deliveryType = select.value;
+    const deliveryType = this.normalizeDeliveryType(select.value);
 
     this.selectedDeliveryType.set(deliveryType);
 
@@ -230,7 +235,7 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
       if (updatedReport) {
         this.report.set(updatedReport);
         // Синхронизируем локальное состояние с ответом сервера
-        this.selectedDeliveryType.set(updatedReport.delivery_type || this.defaultDeliveryType());
+        this.selectedDeliveryType.set(this.normalizeDeliveryType(updatedReport.delivery_type));
       }
       this.saving.set(false);
     });
@@ -279,7 +284,7 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
         // Sync local state with server response
         this.selectedFormat.set(updatedReport.format || 'pdf');
         // Use user-specific default delivery type if report has none
-        this.selectedDeliveryType.set(updatedReport.delivery_type || this.defaultDeliveryType());
+        this.selectedDeliveryType.set(this.normalizeDeliveryType(updatedReport.delivery_type));
         this.selectedScheduleType.set(updatedReport.schedule_type);
       }
       this.saving.set(false);
@@ -435,7 +440,7 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
       catchError((err: HttpErrorResponse) => {
         this.error.set('Не удалось обновить структуру отчёта');
         this.updating.set(false);
-        return of(null);
+        return EMPTY;
       })
     ).subscribe(() => {
       this.updating.set(false);
@@ -458,7 +463,7 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
       catchError((err: HttpErrorResponse) => {
         this.error.set('Не удалось удалить отчёт');
         this.updating.set(false);
-        return of(null);
+        return EMPTY;
       })
     ).subscribe(() => {
       this.updating.set(false);
@@ -689,7 +694,14 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
     if (!deliveryType) return 'Не задано';
     if (deliveryType === 'telegram') return 'Telegram';
     if (deliveryType === 'email') return 'Email';
+    if (deliveryType === 'vk') return 'ВКонтакте';
     return deliveryType;
+  }
+
+  private normalizeDeliveryType(deliveryType: string | null): DeliveryType {
+    return this.deliveryTypeOptions.some(option => option.value === deliveryType)
+      ? deliveryType as DeliveryType
+      : this.defaultDeliveryType();
   }
 
   protected getScheduleTypeLabel(scheduleType: ScheduleType): string {

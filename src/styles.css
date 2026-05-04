@@ -2,6 +2,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
 /* Global Styles */
+:root {
+  --app-bg: #f4f7fb;
+  --surface: #fff;
+  --surface-muted: #f8fafc;
+  --border-soft: #e3e8ef;
+  --text-main: #253040;
+  --text-muted: #667085;
+  --brand: #29b6f6;
+  --brand-strong: #1687d9;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 18px 48px rgba(16, 24, 40, 0.16);
+  --motion-fast: 140ms;
+  --motion-base: 220ms;
+  --motion-slow: 320ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -10,10 +29,13 @@
 
 body {
   font-family: 'Inter', sans-serif;
+  background: var(--app-bg);
+  color: var(--text-main);
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Prevent iOS auto-zoom on input focus in Telegram Web App */
@@ -21,4 +43,223 @@ input,
 select,
 textarea {
   font-size: 16px;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(41, 182, 246, 0.28);
+  outline-offset: 2px;
+}
+
+:where(button, a, input, select, textarea) {
+  transition-duration: var(--motion-base);
+  transition-timing-function: var(--ease-out);
+}
+
+:where(button):active:not(:disabled),
+:where(a):active {
+  transform: translateY(0) scale(0.98);
+}
+
+:where(.admin-layout, .user-layout) {
+  background:
+    radial-gradient(circle at 24px 24px, rgba(41, 182, 246, 0.08), transparent 28px),
+    var(--app-bg);
+}
+
+:where(.admin-header, .user-header) {
+  box-shadow: 0 10px 28px rgba(22, 135, 217, 0.18);
+}
+
+:where(.admin-content, .user-content) > * {
+  animation: page-enter var(--motion-slow) var(--ease-spring) both;
+}
+
+:where(
+  .reports-container,
+  .settings-container,
+  .databases-container,
+  .users-container,
+  .licenses-container,
+  .profile-container,
+  .linked-chats-container
+) {
+  border: 1px solid rgba(227, 232, 239, 0.78);
+  box-shadow: var(--shadow-sm);
+}
+
+:where(
+  .database-card,
+  .report-card,
+  .chat-card,
+  .user-card,
+  .linked-chats-banner,
+  .telegram-banner
+) {
+  will-change: transform, box-shadow;
+  transition:
+    background-color var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    transform var(--motion-base) var(--ease-spring);
+}
+
+:where(
+  .database-card,
+  .report-card,
+  .chat-card,
+  .user-card,
+  .linked-chats-banner,
+  .telegram-banner
+):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+:where(
+  .add-btn,
+  .add-report-btn,
+  .add-database-btn,
+  .submit-btn,
+  .save-btn,
+  .save-settings-btn,
+  .save-schedule-btn,
+  .feature-request-btn,
+  .retry-btn,
+  .telegram-button,
+  .telegram-link-btn,
+  .action-btn,
+  .filter-btn,
+  .settings-btn,
+  .reports-btn,
+  .logout-btn,
+  .profile-btn,
+  .nav-tab,
+  .back-btn
+) {
+  transition:
+    background-color var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out),
+    color var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    transform var(--motion-base) var(--ease-spring),
+    opacity var(--motion-base) var(--ease-out);
+}
+
+:where(
+  .add-btn,
+  .add-report-btn,
+  .add-database-btn,
+  .submit-btn,
+  .save-btn,
+  .save-settings-btn,
+  .save-schedule-btn,
+  .feature-request-btn,
+  .retry-btn,
+  .telegram-button,
+  .telegram-link-btn
+):hover:not(:disabled) {
+  filter: saturate(1.04);
+}
+
+:where(.nav-tab, .profile-btn, .logout-btn, .bottom-nav-item) {
+  position: relative;
+}
+
+:where(.nav-tab.active, .profile-btn.active, .bottom-nav-item.active) {
+  box-shadow: 0 6px 16px rgba(255, 255, 255, 0.18);
+}
+
+:where(.form-input, .field-input, .settings-select, .schedule-select, .schedule-input, .modal-search-input) {
+  transition:
+    background-color var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out);
+}
+
+:where(.form-input, .field-input, .settings-select, .schedule-select, .schedule-input, .modal-search-input):focus {
+  box-shadow: 0 0 0 4px rgba(41, 182, 246, 0.12);
+}
+
+:where(.modal-overlay) {
+  animation: overlay-enter var(--motion-base) var(--ease-out) both;
+  backdrop-filter: blur(3px);
+}
+
+:where(.modal-content) {
+  animation: modal-enter var(--motion-slow) var(--ease-spring) both;
+  box-shadow: var(--shadow-lg);
+}
+
+:where(.form-error, .error-state, .schedule-error, .modal-error) {
+  animation: soft-enter var(--motion-base) var(--ease-out) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes overlay-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
 }

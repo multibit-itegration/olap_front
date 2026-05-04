@@ -3,7 +3,7 @@ export interface Report {
   iiko_connection_id: number;
   user_id: number;
   iiko_report_id: string | null;
-  delivery_type: string | null;
+  delivery_type: DeliveryType | null;
   address: string | null;
   format: string | null;
   iiko_report_structure: string | null;
@@ -27,6 +27,7 @@ export interface CreateReportsRequest {
 export type ReportType = 'SALES' | 'STOCK' | 'TRANSACTIONS' | 'DELIVERIES';
 
 export type ScheduleType = 'trigger' | 'individual' | 'global' | null;
+export type DeliveryType = 'telegram' | 'email' | 'vk';
 
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   SALES: 'OLAP по продажам',
@@ -103,7 +104,7 @@ export const WEEKDAY_LABELS: Record<number, string> = {
 };
 
 export interface UpdateReportRequest {
-  delivery_type?: string | null;
+  delivery_type?: DeliveryType | null;
   format?: string | null;
   schedule_type?: ScheduleType;
 }

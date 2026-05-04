@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, of } from 'rxjs';
+import { catchError, EMPTY, of } from 'rxjs';
 import { ReportService } from '../../core/api/report.service';
 import {
   Report,
@@ -445,7 +445,7 @@ export class ReportsComponent implements OnInit {
       catchError((err: HttpErrorResponse) => {
         this.modalError.set('Не удалось создать отчёты');
         this.submitting.set(false);
-        return of(void 0);
+        return EMPTY;
       })
     ).subscribe(() => {
       this.submitting.set(false);
