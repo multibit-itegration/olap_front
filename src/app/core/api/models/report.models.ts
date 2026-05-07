@@ -3,7 +3,7 @@ export interface Report {
   iiko_connection_id: number;
   user_id: number;
   iiko_report_id: string | null;
-  delivery_type: DeliveryType | null;
+  delivery_type: string | null;
   address: string | null;
   format: string | null;
   iiko_report_structure: string | null;

@@ -71,12 +71,13 @@
             <div class="settings-select-wrapper">
               <select
                 class="settings-select"
-                [value]="selectedDeliveryType()"
                 (change)="onDeliveryTypeChange($event)"
                 [disabled]="saving()"
               >
                 @for (option of deliveryTypeOptions; track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
+                  <option [value]="option.value" [selected]="option.value === selectedDeliveryType()">
+                    {{ option.label }}
+                  </option>
                 }
               </select>
             </div>

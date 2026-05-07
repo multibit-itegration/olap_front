@@ -109,7 +109,7 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
     if (!rep) return false;
     return (
       this.selectedFormat() !== (rep.format || 'pdf') ||
-      this.selectedDeliveryType() !== (rep.delivery_type || this.defaultDeliveryType()) ||
+      this.selectedDeliveryType() !== this.normalizeDeliveryType(rep.delivery_type) ||
       this.selectedScheduleType() !== rep.schedule_type
     );
   });
@@ -212,7 +212,7 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
     if (!rep) return;
 
     // Проверяем, изменился ли delivery_type
-    const currentDeliveryType = rep.delivery_type || this.defaultDeliveryType();
+    const currentDeliveryType = this.normalizeDeliveryType(rep.delivery_type);
     if (this.selectedDeliveryType() === currentDeliveryType) return;
 
     this.saving.set(true);
@@ -233,9 +233,12 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
       })
     ).subscribe(updatedReport => {
       if (updatedReport) {
-        this.report.set(updatedReport);
+        this.report.set({
+          ...updatedReport,
+          delivery_type: this.selectedDeliveryType()
+        });
         // Синхронизируем локальное состояние с ответом сервера
-        this.selectedDeliveryType.set(this.normalizeDeliveryType(updatedReport.delivery_type));
+        this.selectedDeliveryType.set(this.normalizeDeliveryType(this.selectedDeliveryType()));
       }
       this.saving.set(false);
     });
@@ -280,11 +283,15 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
       })
     ).subscribe(updatedReport => {
       if (updatedReport) {
-        this.report.set(updatedReport);
+        const normalizedDeliveryType = this.normalizeDeliveryType(updatedReport.delivery_type);
+        this.report.set({
+          ...updatedReport,
+          delivery_type: normalizedDeliveryType
+        });
         // Sync local state with server response
         this.selectedFormat.set(updatedReport.format || 'pdf');
         // Use user-specific default delivery type if report has none
-        this.selectedDeliveryType.set(this.normalizeDeliveryType(updatedReport.delivery_type));
+        this.selectedDeliveryType.set(normalizedDeliveryType);
         this.selectedScheduleType.set(updatedReport.schedule_type);
       }
       this.saving.set(false);
@@ -691,17 +698,37 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
   }
 
   protected getDeliveryTypeLabel(deliveryType: string | null): string {
-    if (!deliveryType) return 'Не задано';
-    if (deliveryType === 'telegram') return 'Telegram';
-    if (deliveryType === 'email') return 'Email';
-    if (deliveryType === 'vk') return 'ВКонтакте';
-    return deliveryType;
+    if (!deliveryType) {
+      return 'Не задано';
+    }
+    return this.getDeliveryTypeOption(this.normalizeDeliveryType(deliveryType)).label;
   }
 
   private normalizeDeliveryType(deliveryType: string | null): DeliveryType {
-    return this.deliveryTypeOptions.some(option => option.value === deliveryType)
-      ? deliveryType as DeliveryType
-      : this.defaultDeliveryType();
+    const normalized = deliveryType?.trim().toLowerCase();
+
+    if (!normalized) {
+      return this.defaultDeliveryType();
+    }
+
+    if (normalized === 'vk' || normalized === 'vkontakte' || normalized === 'вк' || normalized === 'вконтакте') {
+      return 'vk';
+    }
+
+    if (normalized === 'telegram' || normalized === 'tg') {
+      return 'telegram';
+    }
+
+    if (normalized === 'email' || normalized === 'mail') {
+      return 'email';
+    }
+
+    return this.defaultDeliveryType();
+  }
+
+  private getDeliveryTypeOption(deliveryType: DeliveryType): { value: DeliveryType; label: string } {
+    return this.deliveryTypeOptions.find(option => option.value === deliveryType)
+      ?? this.deliveryTypeOptions[0];
   }
 
   protected getScheduleTypeLabel(scheduleType: ScheduleType): string {
