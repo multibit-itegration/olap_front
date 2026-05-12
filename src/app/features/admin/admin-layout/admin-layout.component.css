@@ -117,14 +117,14 @@
 
   .admin-content {
     margin: 16px auto;
-    padding: 0 16px calc(112px + env(safe-area-inset-bottom)) 16px;
+    padding: 0 16px calc(128px + env(safe-area-inset-bottom)) 16px;
   }
 
   /* Show bottom navigation */
   .bottom-nav {
     display: flex;
     position: fixed;
-    bottom: max(10px, env(safe-area-inset-bottom));
+    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 8px);
     left: 50%;
     width: min(92vw, 430px);
     background-color: white;
@@ -192,13 +192,13 @@
   }
 
   .admin-content {
-    padding: 0 12px calc(108px + env(safe-area-inset-bottom)) 12px;
+    padding: 0 12px calc(124px + env(safe-area-inset-bottom)) 12px;
     margin: 12px auto;
   }
 
   .bottom-nav {
     padding: 6px 0;
-    bottom: max(8px, env(safe-area-inset-bottom));
+    bottom: calc(max(18px, env(safe-area-inset-bottom)) + 8px);
     width: min(94vw, 390px);
     min-height: 68px;
   }
