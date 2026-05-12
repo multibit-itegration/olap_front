@@ -168,23 +168,25 @@
 
   .user-content {
     margin: 16px auto;
-    padding: 0 16px 90px 16px; /* Add bottom padding for fixed bottom nav */
+    padding: 0 16px calc(112px + env(safe-area-inset-bottom)) 16px;
   }
 
   /* Show bottom navigation */
   .bottom-nav {
     display: flex;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
     background-color: white;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(227, 232, 239, 0.82);
+    border-radius: 18px;
+    box-shadow: 0 14px 34px rgba(16, 24, 40, 0.18);
     padding: 8px 0;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
     z-index: 1000;
     justify-content: space-around;
     align-items: center;
+    min-height: 72px;
   }
 
   .bottom-nav-item {
@@ -239,13 +241,16 @@
   }
 
   .user-content {
-    padding: 0 12px 90px 12px;
+    padding: 0 12px calc(108px + env(safe-area-inset-bottom)) 12px;
     margin: 12px auto;
   }
 
   .bottom-nav {
     padding: 6px 0;
-    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    min-height: 68px;
   }
 
   .bottom-nav-item {
