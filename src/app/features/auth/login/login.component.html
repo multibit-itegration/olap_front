@@ -6,12 +6,13 @@
     @if (isTelegramAuthInProgress()) {
       <div class="telegram-auth-loading">
         <div class="loading-spinner"></div>
-        <p>Authenticating via Telegram...</p>
+        <p class="telegram-auth-title">Входим через Telegram</p>
+        <p class="telegram-auth-phrase">{{ telegramAuthPhrase() }}</p>
       </div>
     }
 
     @if (showLoginForm()) {
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <form class="auth-form" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
       <div class="form-group">
         <label class="form-label">Номер телефона</label>
         <input
@@ -40,6 +41,7 @@
             class="password-toggle"
             (click)="togglePasswordVisibility()"
             tabindex="-1"
+            [attr.aria-label]="showPassword() ? 'Скрыть пароль' : 'Показать пароль'"
           >
             @if (!showPassword()) {
               <svg
@@ -79,12 +81,14 @@
 
       @if (hasError()) {
         <div class="error-message">
-          ❌ {{ errorMessage() }}
+          {{ errorMessage() }}
         </div>
       }
 
       <button type="submit" class="submit-button" [disabled]="loginForm.invalid || isSubmitting()">
-        {{ isSubmitting() ? 'Вход...' : 'Войти' }}
+        <span class="submit-button-text">
+          {{ isSubmitting() ? loginAuthPhrase() : 'Войти' }}
+        </span>
       </button>
 
       <div class="footer-link">

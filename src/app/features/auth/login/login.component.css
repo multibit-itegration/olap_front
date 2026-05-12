@@ -4,8 +4,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #2A98CC;
+  background:
+    linear-gradient(145deg, rgba(42, 152, 204, 0.96), rgba(22, 135, 217, 0.94)),
+    #2A98CC;
   padding: 20px;
+  overflow: hidden;
 }
 
 .auth-title {
@@ -14,17 +17,24 @@
   color: white;
   text-align: center;
   margin-bottom: 40px;
-  letter-spacing: 1px;
+  letter-spacing: 0;
+  animation: auth-title-enter var(--motion-slow, 320ms) var(--ease-spring, ease-out) both;
 }
 
 .auth-card {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
   padding: 40px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 24px 70px rgba(18, 73, 118, 0.26);
+  animation: auth-card-enter var(--motion-slow, 320ms) var(--ease-spring, ease-out) both;
+}
+
+.auth-form {
+  animation: auth-form-enter var(--motion-slow, 320ms) var(--ease-spring, ease-out) both;
 }
 
 .form-group {
@@ -48,7 +58,11 @@
   background: rgba(255, 255, 255, 0.9);
   font-size: 16px;
   font-family: 'Inter', sans-serif;
-  transition: all 0.3s ease;
+  transition:
+    background-color var(--motion-base, 220ms) var(--ease-out, ease),
+    border-color var(--motion-base, 220ms) var(--ease-out, ease),
+    box-shadow var(--motion-base, 220ms) var(--ease-out, ease),
+    transform var(--motion-base, 220ms) var(--ease-spring, ease);
   box-sizing: border-box;
 }
 
@@ -56,11 +70,13 @@
   outline: none;
   border-color: white;
   background: white;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
 }
 
 .form-input.error {
-  border-color: #ff4444;
-  background: rgba(255, 68, 68, 0.1);
+  border-color: #ff8f8f;
+  background: rgba(255, 255, 255, 0.94);
 }
 
 .password-wrapper {
@@ -80,16 +96,20 @@
   align-items: center;
   justify-content: center;
   color: #666;
-  transition: color 0.2s ease;
+  border-radius: 6px;
+  transition:
+    color var(--motion-fast, 140ms) var(--ease-out, ease),
+    background-color var(--motion-fast, 140ms) var(--ease-out, ease);
 }
 
 .password-toggle:hover {
+  background: rgba(42, 152, 204, 0.08);
   color: #2A98CC;
 }
 
 .error-message {
-  background: rgba(255, 68, 68, 0.15);
-  border: 1px solid #ff4444;
+  background: rgba(255, 68, 68, 0.18);
+  border: 1px solid rgba(255, 143, 143, 0.72);
   border-radius: 8px;
   padding: 12px 16px;
   color: white;
@@ -97,6 +117,7 @@
   font-weight: 600;
   margin-bottom: 20px;
   text-align: center;
+  animation: auth-message-enter var(--motion-base, 220ms) var(--ease-out, ease) both;
 }
 
 .submit-button {
@@ -109,9 +130,13 @@
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition:
+    background-color var(--motion-base, 220ms) var(--ease-out, ease),
+    box-shadow var(--motion-base, 220ms) var(--ease-out, ease),
+    transform var(--motion-base, 220ms) var(--ease-spring, ease),
+    opacity var(--motion-base, 220ms) var(--ease-out, ease);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
 }
 
 .submit-button:hover:not(:disabled) {
@@ -123,6 +148,18 @@
 .submit-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.submit-button-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  text-wrap: balance;
+}
+
+.submit-button:disabled .submit-button-text {
+  animation: phrase-pulse 1.5s var(--ease-out, ease) infinite;
 }
 
 .footer-link {
@@ -137,7 +174,9 @@
   font-weight: 700;
   text-decoration: none;
   border-bottom: 2px solid white;
-  transition: opacity 0.2s ease;
+  transition:
+    opacity var(--motion-fast, 140ms) var(--ease-out, ease),
+    border-color var(--motion-fast, 140ms) var(--ease-out, ease);
 }
 
 .footer-link a:hover {
@@ -151,13 +190,30 @@
   justify-content: center;
   padding: 40px 20px;
   color: white;
+  animation: auth-form-enter var(--motion-slow, 320ms) var(--ease-spring, ease-out) both;
 }
 
 .telegram-auth-loading p {
-  margin-top: 20px;
+  margin-top: 16px;
   font-size: 16px;
   font-weight: 600;
   color: white;
+}
+
+.telegram-auth-title {
+  margin-bottom: 0;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.telegram-auth-phrase {
+  min-height: 22px;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  animation: phrase-pulse 1.8s var(--ease-out, ease) infinite;
 }
 
 .loading-spinner {
@@ -172,5 +228,72 @@
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes phrase-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translateY(0);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes auth-title-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes auth-form-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 28px 20px;
+  }
+
+  .auth-title {
+    font-size: 28px;
+    margin-bottom: 28px;
   }
 }

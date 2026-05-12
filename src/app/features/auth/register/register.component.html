@@ -2,7 +2,7 @@
   <h1 class="auth-title">РЕГИСТРАЦИЯ</h1>
 
   <div class="auth-card">
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+    <form class="auth-form" [formGroup]="registerForm" (ngSubmit)="onSubmit()">
       <div class="form-group">
         <label class="form-label">Имя</label>
         <input
@@ -53,6 +53,7 @@
             class="password-toggle"
             (click)="togglePasswordVisibility()"
             tabindex="-1"
+            [attr.aria-label]="showPassword() ? 'Скрыть пароль' : 'Показать пароль'"
           >
             @if (!showPassword()) {
               <svg
@@ -92,18 +93,18 @@
 
       @if (errorMessage()) {
         <div class="error-message">
-          ❌ {{ errorMessage() }}
+          {{ errorMessage() }}
         </div>
       }
 
       @if (successMessage()) {
         <div class="success-message">
-          ✅ {{ successMessage() }}
+          {{ successMessage() }}
         </div>
       }
 
-      <button type="submit" class="submit-button" [disabled]="registerForm.invalid">
-        ЗАРЕГИСТРИРОВАТЬСЯ
+      <button type="submit" class="submit-button" [disabled]="registerForm.invalid || isSubmitting()">
+        {{ isSubmitting() ? 'Регистрация...' : 'Зарегистрироваться' }}
       </button>
 
       <div class="footer-link">

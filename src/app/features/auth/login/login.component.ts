@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, inject, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -17,7 +17,7 @@ import { formatPhoneForLogin } from '../../../shared/utils/phone-formatter';
   styleUrls: ['./login.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly telegramService = inject(TelegramService);
@@ -30,7 +30,25 @@ export class LoginComponent implements OnInit {
   isSubmitting = signal(false);
   isTelegramAuthInProgress = signal(false);
   showLoginForm = signal(true);
+  telegramAuthPhrase = signal('Сверяем цифровой пропуск...');
+  loginAuthPhrase = signal('Вход...');
 
+  private readonly loginAuthPhrases = [
+    'Вход...',
+    'Проверяем пароль...',
+    'Ищем ваш профиль...',
+    'Собираем рабочее место...',
+    'Почти впускаем...'
+  ];
+  private readonly telegramAuthPhrases = [
+    'Сверяем цифровой пропуск...',
+    'Ищем ваш Telegram в списке своих...',
+    'Проверяем, что ключ подходит к замку...',
+    'Открываем дверь в личный кабинет...',
+    'Почти внутри, осталось пару байтов...'
+  ];
+  private loginPhraseTimer?: number;
+  private telegramPhraseTimer?: number;
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -52,6 +70,11 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    this.stopLoginPhraseRotation();
+    this.stopTelegramPhraseRotation();
+  }
+
   private attemptTelegramAuth(): void {
     const initData = this.telegramService.initData();
     if (!initData) {
@@ -62,10 +85,14 @@ export class LoginComponent implements OnInit {
     this.showLoginForm.set(false);
     this.hasError.set(false);
     this.errorMessage.set('');
+    this.startTelegramPhraseRotation();
 
     this.authService.telegramAuth(initData).pipe(
       switchMap(() => this.authService.loadCurrentUser()),
-      finalize(() => this.isTelegramAuthInProgress.set(false))
+      finalize(() => {
+        this.isTelegramAuthInProgress.set(false);
+        this.stopTelegramPhraseRotation();
+      })
     ).subscribe({
       next: (user) => {
         if (user.role === 'admin') {
@@ -75,17 +102,34 @@ export class LoginComponent implements OnInit {
         }
       },
       error: (error: HttpErrorResponse) => {
-        // Telegram auth failed, show manual login form
         this.showLoginForm.set(true);
         this.hasError.set(true);
 
         if (error.status === 404) {
-          this.errorMessage.set('Telegram account not found. Please login manually.');
+          this.errorMessage.set('Аккаунт Telegram не найден. Войдите по номеру телефона.');
         } else {
-          this.errorMessage.set('Telegram authentication failed. Please login manually.');
+          this.errorMessage.set('Не удалось войти через Telegram. Войдите по номеру телефона.');
         }
       }
     });
+  }
+
+  private startTelegramPhraseRotation(): void {
+    this.stopTelegramPhraseRotation();
+    this.telegramAuthPhrase.set(this.telegramAuthPhrases[0]);
+
+    let phraseIndex = 0;
+    this.telegramPhraseTimer = window.setInterval(() => {
+      phraseIndex = (phraseIndex + 1) % this.telegramAuthPhrases.length;
+      this.telegramAuthPhrase.set(this.telegramAuthPhrases[phraseIndex]);
+    }, 1800);
+  }
+
+  private stopTelegramPhraseRotation(): void {
+    if (this.telegramPhraseTimer !== undefined) {
+      clearInterval(this.telegramPhraseTimer);
+      this.telegramPhraseTimer = undefined;
+    }
   }
 
   togglePasswordVisibility(): void {
@@ -106,12 +150,16 @@ export class LoginComponent implements OnInit {
     this.isSubmitting.set(true);
     this.hasError.set(false);
     this.errorMessage.set('');
+    this.startLoginPhraseRotation();
 
     const loginData: LoginRequest = this.loginForm.value;
 
     this.authService.login(loginData).pipe(
       switchMap(() => this.authService.loadCurrentUser()),
-      finalize(() => this.isSubmitting.set(false))
+      finalize(() => {
+        this.isSubmitting.set(false);
+        this.stopLoginPhraseRotation();
+      })
     ).subscribe({
       next: (user) => {
         if (user.role === 'admin') {
@@ -138,6 +186,24 @@ export class LoginComponent implements OnInit {
         }
       }
     });
+  }
+
+  private startLoginPhraseRotation(): void {
+    this.stopLoginPhraseRotation();
+    this.loginAuthPhrase.set(this.loginAuthPhrases[0]);
+
+    let phraseIndex = 0;
+    this.loginPhraseTimer = window.setInterval(() => {
+      phraseIndex = (phraseIndex + 1) % this.loginAuthPhrases.length;
+      this.loginAuthPhrase.set(this.loginAuthPhrases[phraseIndex]);
+    }, 1500);
+  }
+
+  private stopLoginPhraseRotation(): void {
+    if (this.loginPhraseTimer !== undefined) {
+      clearInterval(this.loginPhraseTimer);
+      this.loginPhraseTimer = undefined;
+    }
   }
 
   private redirectByRole(): void {

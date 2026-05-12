@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
+import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/api/auth.service';
 import { RegisterRequest } from '../../../core/api/models/auth.models';
 import { formatPhoneForRegister } from '../../../shared/utils/phone-formatter';
@@ -25,6 +26,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   errorMessage = signal('');
   successMessage = signal('');
   fieldErrors = signal<{ [key: string]: boolean }>({});
+  isSubmitting = signal(false);
   private redirectTimer?: number;
 
   constructor() {
@@ -62,13 +64,18 @@ export class RegisterComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.registerForm.invalid) {
+    if (this.registerForm.invalid || this.isSubmitting()) {
       return;
     }
 
+    this.isSubmitting.set(true);
+    this.errorMessage.set('');
+    this.successMessage.set('');
     const registerData: RegisterRequest = this.registerForm.value;
 
-    this.authService.register(registerData).subscribe({
+    this.authService.register(registerData).pipe(
+      finalize(() => this.isSubmitting.set(false))
+    ).subscribe({
       next: (response) => {
         this.fieldErrors.set({});
         this.errorMessage.set('');
@@ -80,7 +87,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
         }, 2000);
       },
       error: (error: HttpErrorResponse) => {
-        this.successMessage.set('');
         const errors: { [key: string]: boolean } = {};
 
         if (error.status === 502) {
