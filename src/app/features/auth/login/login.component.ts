@@ -64,9 +64,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Attempt Telegram auto-auth if available
-    if (this.telegramService.isTelegramWebApp() && this.telegramService.initData()) {
-      this.attemptTelegramAuth();
+    if (this.telegramService.isTelegramLaunch()) {
+      this.prepareTelegramAuth();
     }
   }
 
@@ -112,6 +111,33 @@ export class LoginComponent implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  private prepareTelegramAuth(): void {
+    this.isTelegramAuthInProgress.set(true);
+    this.showLoginForm.set(false);
+    this.hasError.set(false);
+    this.errorMessage.set('');
+    this.startTelegramPhraseRotation();
+
+    void this.telegramService.initialize().then((isReady) => {
+      if (!isReady) {
+        this.showTelegramFallback('Не удалось получить данные Telegram. Откройте приложение из Telegram или войдите по номеру телефона.');
+        return;
+      }
+
+      this.attemptTelegramAuth();
+    }).catch(() => {
+      this.showTelegramFallback('Не удалось загрузить Telegram. Попробуйте обновить страницу или войдите по номеру телефона.');
+    });
+  }
+
+  private showTelegramFallback(message: string): void {
+    this.isTelegramAuthInProgress.set(false);
+    this.showLoginForm.set(true);
+    this.hasError.set(true);
+    this.errorMessage.set(message);
+    this.stopTelegramPhraseRotation();
   }
 
   private startTelegramPhraseRotation(): void {

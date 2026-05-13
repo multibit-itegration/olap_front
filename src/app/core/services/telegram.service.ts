@@ -113,18 +113,116 @@ declare global {
   providedIn: 'root'
 })
 export class TelegramService {
+  private readonly telegramScriptUrl = 'https://telegram.org/js/telegram-web-app.js';
   private readonly _isTelegramWebApp = signal<boolean>(false);
   private readonly _initData = signal<string | null>(null);
   private readonly _telegramUser = signal<TelegramWebAppUser | null>(null);
+  private readonly _isTelegramLaunch = signal<boolean>(false);
+  private sdkLoadPromise?: Promise<boolean>;
 
   readonly isTelegramWebApp = this._isTelegramWebApp.asReadonly();
   readonly initData = this._initData.asReadonly();
   readonly telegramUser = this._telegramUser.asReadonly();
+  readonly isTelegramLaunch = this._isTelegramLaunch.asReadonly();
 
   readonly isReady = computed(() => this._isTelegramWebApp() && this._initData() !== null);
 
   constructor() {
+    this._isTelegramLaunch.set(this.detectTelegramLaunch());
     this.detectTelegramWebApp();
+  }
+
+  initialize(timeoutMs = 8000): Promise<boolean> {
+    if (this.isReady()) {
+      return Promise.resolve(true);
+    }
+
+    if (!this._isTelegramLaunch()) {
+      return Promise.resolve(false);
+    }
+
+    return this.loadSdk(timeoutMs).then(() => {
+      this.detectTelegramWebApp();
+      return this.isReady();
+    });
+  }
+
+  private detectTelegramLaunch(): boolean {
+    if (window.Telegram?.WebApp) {
+      return true;
+    }
+
+    const launchParams = new URLSearchParams(this.getTelegramParamsSource());
+    return launchParams.has('tgWebAppData') || launchParams.has('tgWebAppVersion');
+  }
+
+  private getTelegramParamsSource(): string {
+    const hash = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+
+    return hash || window.location.search;
+  }
+
+  private loadSdk(timeoutMs: number): Promise<boolean> {
+    if (window.Telegram?.WebApp) {
+      return Promise.resolve(true);
+    }
+
+    if (this.sdkLoadPromise) {
+      return this.sdkLoadPromise;
+    }
+
+    this.sdkLoadPromise = new Promise<boolean>((resolve, reject) => {
+      const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${this.telegramScriptUrl}"]`);
+      const script = existingScript ?? document.createElement('script');
+      let settled = false;
+
+      const cleanup = (): void => {
+        window.clearTimeout(timeoutId);
+        script.removeEventListener('load', handleLoad);
+        script.removeEventListener('error', handleError);
+      };
+
+      const settle = (value: boolean): void => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        resolve(value);
+      };
+
+      const fail = (): void => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        reject(new Error('Telegram WebApp SDK failed to load'));
+      };
+
+      const handleLoad = (): void => settle(true);
+      const handleError = (): void => fail();
+      const timeoutId = window.setTimeout(() => fail(), timeoutMs);
+
+      script.addEventListener('load', handleLoad);
+      script.addEventListener('error', handleError);
+
+      if (!existingScript) {
+        script.src = this.telegramScriptUrl;
+        script.async = true;
+        document.head.appendChild(script);
+      }
+    });
+
+    this.sdkLoadPromise.catch(() => {
+      this.sdkLoadPromise = undefined;
+    });
+
+    return this.sdkLoadPromise;
   }
 
   private detectTelegramWebApp(): void {

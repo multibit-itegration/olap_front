@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { Router, type CanActivateFn } from '@angular/router';
 import { AuthService } from '../api/auth.service';
 import { TelegramService } from '../services/telegram.service';
-import { map, catchError, of, switchMap } from 'rxjs';
+import { map, catchError, of, switchMap, from } from 'rxjs';
 
 export const authGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
@@ -11,11 +11,20 @@ export const authGuard: CanActivateFn = () => {
 
   // Not authenticated: check if we can auto-auth via Telegram
   if (!authService.isAuthenticated()) {
-    // Attempt Telegram auto-auth if initData is available
-    if (telegramService.isTelegramWebApp() && telegramService.initData()) {
-      return authService.telegramAuth(telegramService.initData()!).pipe(
-        switchMap(() => authService.loadCurrentUser()),
-        map(() => true),
+    if (telegramService.isTelegramLaunch()) {
+      return from(telegramService.initialize()).pipe(
+        switchMap((isReady) => {
+          const initData = telegramService.initData();
+
+          if (!isReady || !initData) {
+            return of(router.createUrlTree(['/login']));
+          }
+
+          return authService.telegramAuth(initData).pipe(
+            switchMap(() => authService.loadCurrentUser()),
+            map(() => true)
+          );
+        }),
         catchError(() => {
           // Telegram auth failed, redirect to login for manual auth
           return of(router.createUrlTree(['/login']));
