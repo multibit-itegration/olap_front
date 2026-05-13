@@ -132,9 +132,13 @@ export class TelegramService {
     this.detectTelegramWebApp();
   }
 
-  initialize(timeoutMs = 8000): Promise<boolean> {
+  initialize(timeoutMs = 8000, forceTelegramLaunch = false): Promise<boolean> {
     if (this.isReady()) {
       return Promise.resolve(true);
+    }
+
+    if (forceTelegramLaunch) {
+      this._isTelegramLaunch.set(true);
     }
 
     if (!this._isTelegramLaunch()) {

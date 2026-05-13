@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { switchMap, finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/api/auth.service';
@@ -22,6 +22,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly telegramService = inject(TelegramService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   loginForm: FormGroup;
   showPassword = signal(false);
@@ -64,7 +65,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.telegramService.isTelegramLaunch()) {
+    if (this.telegramService.isTelegramLaunch() || this.isTelegramAuthRoute()) {
       this.prepareTelegramAuth();
     }
   }
@@ -120,7 +121,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.errorMessage.set('');
     this.startTelegramPhraseRotation();
 
-    void this.telegramService.initialize().then((isReady) => {
+    void this.telegramService.initialize(8000, this.isTelegramAuthRoute()).then((isReady) => {
       if (!isReady) {
         this.showTelegramFallback('Не удалось получить данные Telegram. Откройте приложение из Telegram или войдите по номеру телефона.');
         return;
@@ -130,6 +131,10 @@ export class LoginComponent implements OnInit, OnDestroy {
     }).catch(() => {
       this.showTelegramFallback('Не удалось загрузить Telegram. Попробуйте обновить страницу или войдите по номеру телефона.');
     });
+  }
+
+  private isTelegramAuthRoute(): boolean {
+    return this.route.snapshot.data['telegramAuth'] === true;
   }
 
   private showTelegramFallback(message: string): void {

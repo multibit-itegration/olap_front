@@ -13,6 +13,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
   },
   {
+    path: 'logintg',
+    loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent),
+    data: { telegramAuth: true }
+  },
+  {
     path: 'reg',
     loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
   },
