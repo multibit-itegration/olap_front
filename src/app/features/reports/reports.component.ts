@@ -16,6 +16,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, EMPTY, of } from 'rxjs';
@@ -50,11 +51,19 @@ interface IikoReportGroup {
 }
 
 const REPORTS_MODAL_NAV_REASON = 'reports-modal';
+const DEFAULT_GLOBAL_SCHEDULE_FORM = {
+  frequency: 'daily' as ScheduleFrequency,
+  timezone: 'Europe/Moscow',
+  time: '13:00',
+  weekday: 1,
+  dayOfMonth: '1',
+  dataPeriod: 7
+};
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -500,12 +509,15 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadGlobalSchedule(): void {
     this.scheduleLoading.set(true);
     this.scheduleError.set(null);
+    this.existingSchedule.set(null);
+    this.resetGlobalScheduleForm();
 
     this.reportService.getGlobalSchedule(this.dbId()).pipe(
       takeUntilDestroyed(this.destroyRef),
       catchError((err: HttpErrorResponse) => {
         if (err.status === 404) {
           this.existingSchedule.set(null);
+          this.resetGlobalScheduleForm();
           this.scheduleLoading.set(false);
           return of(null);
         }
@@ -515,16 +527,20 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       })
     ).subscribe(schedule => {
       if (schedule) {
-        this.existingSchedule.set(schedule);
-        this.parseCronToForm(schedule.global_cron);
-        const matchedTz = TIMEZONE_CHOICES.find(
-          tz => tz.value.toLowerCase() === schedule.timezone.toLowerCase()
-        );
-        this.scheduleTimezone.set(matchedTz?.value ?? 'Europe/Moscow');
-        this.scheduleDataPeriod.set(schedule.data_period_days);
+        this.applyGlobalScheduleToForm(schedule);
       }
       this.scheduleLoading.set(false);
     });
+  }
+
+  private applyGlobalScheduleToForm(schedule: GlobalSchedule): void {
+    this.existingSchedule.set(schedule);
+    this.parseCronToForm(schedule.global_cron);
+    const matchedTz = TIMEZONE_CHOICES.find(
+      tz => tz.value.toLowerCase() === schedule.timezone.toLowerCase()
+    );
+    this.scheduleTimezone.set(matchedTz?.value ?? DEFAULT_GLOBAL_SCHEDULE_FORM.timezone);
+    this.scheduleDataPeriod.set(schedule.data_period_days);
   }
 
   private parseCronToForm(cron: string): void {
@@ -567,52 +583,80 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     this.layoutUi.setMobileNavHidden(REPORTS_MODAL_NAV_REASON, this.showModal());
     this.scheduleError.set(null);
     this.existingSchedule.set(null);
-    this.scheduleFrequency.set('daily');
-    this.scheduleTimezone.set('Europe/Moscow');
-    this.scheduleTime.set('13:00');
-    this.scheduleWeekday.set(1);
-    this.scheduleDayOfMonth.set('1');
-    this.scheduleDataPeriod.set(7);
+    this.resetGlobalScheduleForm();
 
     if (shouldResumeOnboarding) {
       window.setTimeout(() => this.onboarding.openAtStep('setup_schedule'));
     }
   }
 
+  private resetGlobalScheduleForm(): void {
+    this.scheduleFrequency.set(DEFAULT_GLOBAL_SCHEDULE_FORM.frequency);
+    this.scheduleTimezone.set(DEFAULT_GLOBAL_SCHEDULE_FORM.timezone);
+    this.scheduleTime.set(DEFAULT_GLOBAL_SCHEDULE_FORM.time);
+    this.scheduleWeekday.set(DEFAULT_GLOBAL_SCHEDULE_FORM.weekday);
+    this.scheduleDayOfMonth.set(DEFAULT_GLOBAL_SCHEDULE_FORM.dayOfMonth);
+    this.scheduleDataPeriod.set(DEFAULT_GLOBAL_SCHEDULE_FORM.dataPeriod);
+  }
+
   protected onFrequencyChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.scheduleFrequency.set(select.value as ScheduleFrequency);
+    this.onFrequencyValueChange(select.value);
+  }
+
+  protected onFrequencyValueChange(value: string): void {
+    this.scheduleFrequency.set(value as ScheduleFrequency);
   }
 
   protected onTimezoneChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.scheduleTimezone.set(select.value);
+    this.onTimezoneValueChange(select.value);
+  }
+
+  protected onTimezoneValueChange(value: string): void {
+    this.scheduleTimezone.set(value);
   }
 
   protected onTimeChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.scheduleTime.set(input.value);
+    this.onTimeValueChange(input.value);
+  }
+
+  protected onTimeValueChange(value: string): void {
+    this.scheduleTime.set(value);
   }
 
   protected onWeekdayChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.scheduleWeekday.set(parseInt(select.value, 10));
+    this.onWeekdayValueChange(parseInt(select.value, 10));
+  }
+
+  protected onWeekdayValueChange(value: number): void {
+    this.scheduleWeekday.set(value);
   }
 
   protected onDayOfMonthChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const value = parseInt(input.value, 10);
+    this.onDayOfMonthValueChange(input.value);
+  }
+
+  protected onDayOfMonthValueChange(value: string | number | null): void {
+    const parsedValue = parseInt(String(value ?? ''), 10);
     // Validate day of month (1-31)
-    const validatedValue = Math.min(31, Math.max(1, value || 1));
+    const validatedValue = Math.min(31, Math.max(1, parsedValue || 1));
     this.scheduleDayOfMonth.set(validatedValue.toString());
   }
 
   protected onDataPeriodChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const value = parseInt(input.value, 10);
+    this.onDataPeriodValueChange(input.value);
+  }
+
+  protected onDataPeriodValueChange(value: string | number | null): void {
+    const parsedValue = parseInt(String(value ?? ''), 10);
     // Validate range: 1-365 days
-    if (!isNaN(value) && value >= 1 && value <= 365) {
-      this.scheduleDataPeriod.set(value);
+    if (!isNaN(parsedValue) && parsedValue >= 1 && parsedValue <= 365) {
+      this.scheduleDataPeriod.set(parsedValue);
     }
   }
 

@@ -84,7 +84,13 @@ describe('ReportsComponent', () => {
         provideRouter([]),
         { provide: ReportService, useValue: reportSpy },
         { provide: Router, useValue: routerSpyObj },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap(routeParams) } } }
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { paramMap: convertToParamMap(routeParams) },
+            paramMap: of(convertToParamMap(routeParams))
+          }
+        }
       ]
     });
 
@@ -261,6 +267,40 @@ describe('ReportsComponent', () => {
 
         setTimeout(() => {
           expect(component['scheduleTimezone']()).toBe('Europe/Moscow');
+          done();
+        });
+      });
+    });
+
+    it('should render loaded schedule values in form selects', (done) => {
+      const loadedSchedule: GlobalSchedule = {
+        ...mockGlobalSchedule,
+        global_cron: '00 14 * * 3',
+        timezone: 'Europe/Moscow',
+        data_period_days: 5
+      };
+      reportServiceSpy.getGlobalSchedule.and.returnValue(of(loadedSchedule));
+
+      const fixture = TestBed.createComponent(ReportsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        component['onScheduleSettings']();
+        fixture.detectChanges();
+
+        setTimeout(() => {
+          fixture.detectChanges();
+
+          const selects = fixture.nativeElement.querySelectorAll('select.schedule-select') as NodeListOf<HTMLSelectElement>;
+          const dataPeriodInput = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+          const timeInput = fixture.nativeElement.querySelector('input[type="time"]') as HTMLInputElement;
+
+          expect(selects[0].selectedOptions[0].textContent?.trim()).toBe('Еженедельно');
+          expect(selects[1].selectedOptions[0].textContent?.trim()).toBe('Москва (UTC+3)');
+          expect(selects[2].selectedOptions[0].textContent?.trim()).toBe('Среда');
+          expect(dataPeriodInput.value).toBe('5');
+          expect(timeInput.value).toBe('14:00');
           done();
         });
       });
