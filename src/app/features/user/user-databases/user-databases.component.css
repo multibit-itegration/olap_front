@@ -195,6 +195,25 @@
   transform: translateY(0);
 }
 
+.add-btn.onboarding-add-database-target,
+.add-database-btn.onboarding-add-database-target {
+  position: relative;
+  z-index: 3003;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.add-btn.onboarding-add-database-target {
+  box-shadow:
+    0 0 0 4px #1e90ff,
+    0 0 0 8px rgba(255, 255, 255, 0.92),
+    0 18px 38px rgba(76, 175, 80, 0.42);
+}
+
+.add-database-btn.onboarding-add-database-target {
+  transform: translateY(0) scale(1.03);
+}
+
 /* Form Styles */
 .form-container {
   background-color: #f9f9f9;
@@ -202,6 +221,129 @@
   padding: 24px;
   margin-bottom: 24px;
   border: 2px solid #e0e0e0;
+}
+
+.onboarding-form-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2400;
+  background: rgba(12, 22, 34, 0.58);
+  backdrop-filter: blur(5px);
+  pointer-events: auto;
+  animation: overlay-enter var(--motion-base, 220ms) var(--ease-out, ease) both;
+}
+
+.form-container.onboarding-form-step {
+  position: relative;
+  z-index: 2401;
+  background-color: #f9f9f9;
+  border-color: rgba(30, 144, 255, 0.48);
+  box-shadow:
+    0 0 0 4px rgba(30, 144, 255, 0.1),
+    0 14px 34px rgba(16, 24, 40, 0.12);
+}
+
+.onboarding-form-tip {
+  position: relative;
+  margin: 0 0 24px;
+  padding: 18px 56px 18px 20px;
+  border: 1px solid rgba(30, 144, 255, 0.18);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(16, 24, 40, 0.08);
+}
+
+.onboarding-form-eyebrow {
+  margin: 0 0 6px;
+  color: #1687d9;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.onboarding-form-tip h3 {
+  margin: 0 0 8px;
+  color: #253040;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.onboarding-form-tip p:last-child {
+  margin: 0;
+  color: #667085;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.onboarding-form-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(37, 48, 64, 0.1);
+  border-radius: 50%;
+  background: #fff;
+  color: #667085;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.onboarding-form-close:hover {
+  color: #253040;
+  box-shadow: 0 8px 18px rgba(16, 24, 40, 0.1);
+}
+
+.onboarding-existing-step {
+  position: fixed;
+  z-index: 2401;
+  left: 50%;
+  top: 50%;
+  width: min(520px, calc(100vw - 40px));
+  padding: 26px 28px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 28px 74px rgba(16, 24, 40, 0.3);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.onboarding-existing-step h2 {
+  margin: 0;
+  color: #253040;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.16;
+}
+
+.onboarding-existing-step p:last-of-type {
+  margin: 16px auto 24px;
+  color: #667085;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.onboarding-existing-next {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 8px;
+  background: #55b75a;
+  box-shadow: 0 12px 24px rgba(85, 183, 90, 0.26);
+  color: #fff;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.onboarding-existing-next:hover {
+  background: #45a74b;
 }
 
 .form-header {
@@ -267,6 +409,18 @@
   color: #333;
   background-color: white;
   transition: border-color 0.2s ease;
+}
+
+.form-container.onboarding-form-step .form-label {
+  color: #1687d9;
+  font-weight: 700;
+}
+
+.form-container.onboarding-form-step .form-input:not(:disabled) {
+  border-color: #1e90ff;
+  box-shadow:
+    0 0 0 3px rgba(30, 144, 255, 0.14),
+    0 8px 18px rgba(30, 144, 255, 0.08);
 }
 
 .form-input:focus {
@@ -373,6 +527,19 @@
     padding-bottom: 20px;
   }
 
+  .onboarding-form-tip {
+    margin-bottom: 20px;
+    padding: 16px 52px 16px 16px;
+  }
+
+  .onboarding-form-tip h3 {
+    font-size: 18px;
+  }
+
+  .onboarding-form-tip p:last-child {
+    font-size: 14px;
+  }
+
   .form-content {
     flex-direction: column;
   }
@@ -410,6 +577,30 @@
 
   .form-title {
     font-size: 16px;
+  }
+
+  .onboarding-form-tip {
+    padding: 14px 48px 14px 14px;
+  }
+
+  .onboarding-form-close {
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .onboarding-existing-step {
+    width: calc(100vw - 28px);
+    padding: 22px 18px 20px;
+  }
+
+  .onboarding-existing-step h2 {
+    font-size: 22px;
+  }
+
+  .onboarding-existing-step p:last-of-type {
+    font-size: 14px;
   }
 
   .btn {

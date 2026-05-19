@@ -33,6 +33,20 @@
 
       <div class="divider"></div>
 
+      @if (user()!.role === 'user') {
+        <button
+          #onboardingStartButton
+          class="onboarding-start-btn"
+          type="button"
+          data-onboarding-target="restart-onboarding"
+          (click)="startOnboarding()">
+          <span class="onboarding-start-icon" aria-hidden="true"></span>
+          <span>Пройти обучение</span>
+        </button>
+
+        <div class="divider"></div>
+      }
+
       <!-- Linked Chats Banner -->
       <div class="linked-chats-banner" (click)="onViewLinkedChats()">
         <div class="banner-left">
@@ -79,7 +93,10 @@
           />
         </div>
 
-        <div class="form-group">
+        <div
+          #passwordInput
+          class="form-group"
+          data-onboarding-target="profile-password">
           <label for="password" class="form-label">Новый пароль</label>
           <input
             id="password"

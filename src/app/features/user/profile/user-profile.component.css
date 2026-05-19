@@ -59,6 +59,57 @@
   margin: 24px 0;
 }
 
+.onboarding-start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 54px;
+  gap: 12px;
+  padding: 14px 24px;
+  border: 0;
+  border-radius: 8px;
+  background: #55b75a;
+  box-shadow: 0 12px 24px rgba(85, 183, 90, 0.22);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.onboarding-start-btn:hover {
+  background: #45a74b;
+  box-shadow: 0 14px 28px rgba(85, 183, 90, 0.28);
+  transform: translateY(-1px);
+}
+
+.onboarding-start-icon {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.onboarding-start-icon::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid currentColor;
+  content: '';
+  transform: translate(-36%, -50%);
+}
+
 .linked-chats-banner {
   display: flex;
   align-items: center;

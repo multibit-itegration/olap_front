@@ -1,4 +1,18 @@
-import { Component, ChangeDetectionStrategy, inject, OnInit, OnDestroy, signal, computed, DestroyRef } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -7,6 +21,7 @@ import { catchError, EMPTY, of } from 'rxjs';
 import { ReportService } from '../../../core/api/report.service';
 import { AuthService } from '../../../core/api/auth.service';
 import { LinkedChatsService } from '../../../core/api/linked-chats.service';
+import { OnboardingService } from '../../../core/services/onboarding.service';
 import { DeliveryType, Report, ScheduleType, IndividualSchedule, GroupSchedule, ScheduleFrequency, SCHEDULE_FREQUENCY_LABELS, TIMEZONE_CHOICES, WEEKDAY_LABELS } from '../../../core/api/models/report.models';
 import { LinkedChat } from '../../../core/api/models/linked-chats.models';
 
@@ -18,13 +33,15 @@ import { LinkedChat } from '../../../core/api/models/linked-chats.models';
   styleUrls: ['./report-settings.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ReportSettingsComponent implements OnInit, OnDestroy {
+export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly reportService = inject(ReportService);
   private readonly authService = inject(AuthService);
   private readonly linkedChatsService = inject(LinkedChatsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly hostElement = inject(ElementRef<HTMLElement>);
+  protected readonly onboarding = inject(OnboardingService);
 
   // Timeout IDs for cleanup
   private featureRequestTimeoutId?: number;
@@ -114,6 +131,56 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
     );
   });
 
+  @ViewChild('mainSettingsBlock')
+  private mainSettingsBlock?: ElementRef<HTMLElement>;
+
+  @ViewChild('updateStructureButton')
+  private updateStructureButton?: ElementRef<HTMLButtonElement>;
+
+  private lastHandledOnboardingActivation = 0;
+
+  private readonly onboardingTargetEffect = effect(() => {
+    if (!this.onboarding.active()) {
+      return;
+    }
+
+    const stepId = this.onboarding.step().id;
+
+    if (stepId === 'report_settings_overview') {
+      this.scheduleMainSettingsTargetUpdate();
+    }
+
+    if (stepId === 'update_report_structure') {
+      this.scheduleUpdateStructureTargetUpdate();
+    }
+  });
+
+  private readonly onboardingActivationEffect = effect(() => {
+    const activationVersion = this.onboarding.targetActivation();
+    const activationStep = this.onboarding.targetActivationStep();
+    const stepId = this.onboarding.step().id;
+
+    if (
+      activationVersion === 0 ||
+      activationVersion === this.lastHandledOnboardingActivation ||
+      !this.onboarding.active() ||
+      activationStep !== stepId
+    ) {
+      return;
+    }
+
+    this.lastHandledOnboardingActivation = activationVersion;
+
+    if (stepId === 'report_settings_overview') {
+      this.onboarding.next();
+      return;
+    }
+
+    if (stepId === 'update_report_structure') {
+      this.openProfileStep();
+    }
+  });
+
   ngOnInit(): void {
     const reportIdParam = this.route.snapshot.paramMap.get('reportId');
     if (!reportIdParam) {
@@ -176,6 +243,8 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
         this.selectedDeliveryType.set(this.normalizeDeliveryType(report.delivery_type));
         this.selectedScheduleType.set(report.schedule_type);
         this.loading.set(false);
+        this.openReportSettingsOnboardingAfterLoad();
+        this.scheduleCurrentOnboardingTargetUpdate();
 
         // Load individual schedule if schedule_type is 'individual'
         if (report.schedule_type === 'individual') {
@@ -187,6 +256,148 @@ export class ReportSettingsComponent implements OnInit, OnDestroy {
 
   protected retry(): void {
     this.loadReport();
+  }
+
+  ngAfterViewInit(): void {
+    this.scheduleCurrentOnboardingTargetUpdate();
+  }
+
+  @HostListener('window:resize')
+  protected onWindowResize(): void {
+    this.scheduleCurrentOnboardingTargetUpdate();
+  }
+
+  private scheduleCurrentOnboardingTargetUpdate(): void {
+    const stepId = this.onboarding.step().id;
+
+    if (stepId === 'report_settings_overview') {
+      this.scheduleMainSettingsTargetUpdate();
+    }
+
+    if (stepId === 'update_report_structure') {
+      this.scheduleUpdateStructureTargetUpdate();
+    }
+  }
+
+  private openReportSettingsOnboardingAfterLoad(): void {
+    if (this.onboarding.active() || this.onboarding.step().id !== 'configure_report') {
+      return;
+    }
+
+    window.setTimeout(() => {
+      if (!this.report()) {
+        return;
+      }
+
+      this.onboarding.openAtStep('report_settings_overview');
+    });
+  }
+
+  private updateMainSettingsTargetRect(): void {
+    if (!this.onboarding.active() || this.onboarding.step().id !== 'report_settings_overview') {
+      return;
+    }
+
+    const block = this.getMainSettingsBlock();
+    if (!block) {
+      this.clearOnboardingTarget();
+      return;
+    }
+
+    const padding = 6;
+    const rect = block.getBoundingClientRect();
+    this.onboarding.setTargetRect({
+      top: rect.top - padding,
+      left: rect.left - padding,
+      width: rect.width + padding * 2,
+      height: rect.height + padding * 2
+    });
+    this.onboarding.setSecondaryTargetRect(null);
+    this.setGuidePositionForRect(rect, window.innerWidth <= 900 ? 340 : 210);
+  }
+
+  private scheduleMainSettingsTargetUpdate(): void {
+    window.setTimeout(() => this.updateMainSettingsTargetRect());
+    window.requestAnimationFrame(() => this.updateMainSettingsTargetRect());
+    window.setTimeout(() => this.updateMainSettingsTargetRect(), 80);
+  }
+
+  private updateUpdateStructureTargetRect(): void {
+    if (!this.onboarding.active() || this.onboarding.step().id !== 'update_report_structure') {
+      return;
+    }
+
+    const button = this.getUpdateStructureButton();
+    if (!button) {
+      this.clearOnboardingTarget();
+      return;
+    }
+
+    const padding = 4;
+    const rect = button.getBoundingClientRect();
+    this.onboarding.setTargetRect({
+      top: rect.top - padding,
+      left: rect.left - padding,
+      width: rect.width + padding * 2,
+      height: rect.height + padding * 2
+    });
+    this.onboarding.setSecondaryTargetRect(null);
+    this.setGuidePositionForRect(rect, 220);
+  }
+
+  private scheduleUpdateStructureTargetUpdate(): void {
+    window.setTimeout(() => this.updateUpdateStructureTargetRect());
+    window.requestAnimationFrame(() => this.updateUpdateStructureTargetRect());
+    window.setTimeout(() => this.updateUpdateStructureTargetRect(), 80);
+  }
+
+  private openProfileStep(): void {
+    this.onboarding.close();
+
+    this.router.navigateByUrl('/user/databases').then(navigated => {
+      if (navigated || this.router.url.split(/[?#]/)[0] === '/user/databases') {
+        window.setTimeout(() => this.onboarding.openAtStep('go_to_profile'), 120);
+      }
+    });
+  }
+
+  private getMainSettingsBlock(): HTMLElement | null {
+    return this.mainSettingsBlock?.nativeElement
+      ?? this.hostElement.nativeElement.querySelector('[data-onboarding-target="report-settings-overview"]') as HTMLElement | null;
+  }
+
+  private getUpdateStructureButton(): HTMLButtonElement | null {
+    return this.updateStructureButton?.nativeElement
+      ?? this.hostElement.nativeElement.querySelector('[data-onboarding-target="update-structure"]') as HTMLButtonElement | null;
+  }
+
+  private clearOnboardingTarget(): void {
+    this.onboarding.setTargetRect(null);
+    this.onboarding.setSecondaryTargetRect(null);
+    this.onboarding.setGuidePosition(null);
+  }
+
+  private setGuidePositionForRect(rect: DOMRect, cardHeight: number): void {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const isCompactViewport = viewportWidth <= 900;
+    const spacing = isCompactViewport ? 18 : 28;
+    const safeTop = isCompactViewport ? 12 : 24;
+    const safeBottom = isCompactViewport ? 96 : 24;
+    const adjustedCardHeight = isCompactViewport ? Math.min(cardHeight, 340) : cardHeight;
+    const desktopTopSpacing = 42;
+    const effectiveSpacing = !isCompactViewport && rect.top - spacing - adjustedCardHeight >= safeTop
+      ? desktopTopSpacing
+      : spacing;
+    const hasRoomBelow = rect.bottom + spacing + adjustedCardHeight <= viewportHeight - safeBottom;
+    const preferredTop = hasRoomBelow
+      ? rect.bottom + effectiveSpacing
+      : rect.top - effectiveSpacing - adjustedCardHeight;
+
+    this.onboarding.setGuidePosition({
+      top: Math.max(safeTop, Math.min(preferredTop, viewportHeight - safeBottom - adjustedCardHeight)),
+      width: Math.min(viewportWidth - (isCompactViewport ? 28 : 40), 520)
+    });
   }
 
   protected onFormatChange(event: Event): void {

@@ -36,7 +36,9 @@
           {{ saving() ? 'Сохранение...' : 'Сохранить' }}
         </button>
         <button
+          #updateStructureButton
           class="update-structure-btn"
+          data-onboarding-target="update-structure"
           (click)="onUpdateStructure()"
           [disabled]="updating()"
         >
@@ -51,7 +53,12 @@
         </button>
       </div>
 
-      <div class="main-settings-block">
+      <div
+        #mainSettingsBlock
+        class="main-settings-block"
+        data-onboarding-target="report-settings-overview"
+        [class.onboarding-report-settings-target]="onboarding.active() && onboarding.step().id === 'report_settings_overview'"
+      >
         <div class="settings-rows">
           <div class="settings-row">
             <span class="settings-label">Формат рассылки</span>

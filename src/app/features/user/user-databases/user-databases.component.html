@@ -1,4 +1,36 @@
 <div class="databases-container">
+  @if (onboarding.active() && onboarding.step().id === 'database_form' && !showForm()) {
+    <div class="onboarding-form-backdrop" aria-hidden="true"></div>
+
+    <section
+      class="onboarding-existing-step"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="onboarding-existing-title"
+      aria-describedby="onboarding-existing-description"
+    >
+      <button
+        class="onboarding-form-close"
+        type="button"
+        aria-label="Закрыть онбординг"
+        (click)="onboarding.close()"
+      >
+        ×
+      </button>
+
+      <p class="onboarding-form-eyebrow">{{ onboarding.step().eyebrow }}</p>
+      <h2 id="onboarding-existing-title">{{ onboarding.step().title }}</h2>
+      <p id="onboarding-existing-description">
+        Данные базы уже добавлены. Если понадобится изменить подключение, откройте настройки базы.
+        Данные для подключения можно получить в iikoOffice/iikoChain или уточнить у вашей технической поддержки.
+      </p>
+
+      <button class="onboarding-existing-next" type="button" (click)="onboarding.next()">
+        Далее
+      </button>
+    </section>
+  }
+
   @if (authService.currentUser(); as user) {
     @if (!user.telegram_id) {
       <div class="telegram-banner">
@@ -28,8 +60,13 @@
   }
 
   <div class="header-section">
-    <h1 class="page-title">МОИ БАЗЫ ДАННЫХ</h1>
-    <button class="add-btn" (click)="onAddDatabase()" title="Добавить базу данных">
+    <h1 class="page-title">Мои базы iiko</h1>
+    <button
+      #addDatabaseHeaderButton
+      class="add-btn"
+      [class.onboarding-add-database-target]="onboarding.active() && onboarding.step().id === 'add_database'"
+      (click)="onAddDatabase()"
+      title="Добавить базу данных">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M10 4V16M4 10H16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -37,10 +74,33 @@
   </div>
 
   @if (showForm()) {
-    <div class="form-container">
+    @if (onboarding.active() && onboarding.step().id === 'database_form') {
+      <div class="onboarding-form-backdrop" aria-hidden="true"></div>
+    }
+
+    <div
+      class="form-container"
+      [class.onboarding-form-step]="onboarding.active() && onboarding.step().id === 'database_form'"
+    >
       <div class="form-header">
         <h2 class="form-title">{{ editingConnection() ? 'Редактирование базы данных' : 'Добавление базы данных' }}</h2>
       </div>
+
+      @if (onboarding.active() && onboarding.step().id === 'database_form') {
+        <div class="onboarding-form-tip">
+          <button
+            class="onboarding-form-close"
+            type="button"
+            aria-label="Закрыть онбординг"
+            (click)="onboarding.close()"
+          >
+            ×
+          </button>
+          <p class="onboarding-form-eyebrow">{{ onboarding.step().eyebrow }}</p>
+          <h3>{{ onboarding.step().title }}</h3>
+          <p>{{ onboarding.step().description }}</p>
+        </div>
+      }
 
       @if (formError()) {
         <div class="form-error">
@@ -87,7 +147,7 @@
                 [class.input-error]="formErrorType() === 'connection'"
                 [value]="formPath()"
                 (input)="onPathChange($event)"
-                placeholder="/"
+                placeholder="/resto"
                 [disabled]="formLoading()"
               />
             </div>
@@ -96,7 +156,8 @@
               <label for="port" class="form-label">Порт</label>
               <input
                 id="port"
-                type="number"
+                type="text"
+                inputmode="numeric"
                 class="form-input"
                 [class.input-error]="formErrorType() === 'connection'"
                 [value]="formPort()"
@@ -193,7 +254,12 @@
       <div class="empty-state">
         <p>У вас пока нет баз данных</p>
         <p class="empty-hint">Добавьте первую базу, чтобы начать работу</p>
-        <button class="add-database-btn" (click)="onAddDatabase()">
+        <button
+          #addDatabaseButton
+          class="add-database-btn"
+          [class.onboarding-add-database-target]="onboarding.active() && onboarding.step().id === 'add_database'"
+          (click)="onAddDatabase()"
+        >
           Добавить базу
         </button>
       </div>
@@ -203,7 +269,12 @@
           <div class="database-card">
             <div class="database-name">{{ database.name }}</div>
             <div class="database-actions">
-              <button class="action-btn reports-btn" (click)="onReports(database)">
+              <button
+                #reportsButton
+                class="action-btn reports-btn"
+                data-onboarding-target="reports"
+                (click)="onReports(database)"
+              >
                 Отчёты
               </button>
               <button class="action-btn settings-btn" (click)="onSettings(database)">

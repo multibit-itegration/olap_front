@@ -6,7 +6,25 @@
       </svg>
     </button>
     <h1 class="page-title">ОТЧЁТЫ</h1>
-    <a class="schedule-link" (click)="onScheduleSettings()">Настроить общее расписание отчётов</a>
+    <a
+      #scheduleSettingsLink
+      class="schedule-link"
+      data-onboarding-target="schedule"
+      (click)="onScheduleSettings()"
+    >
+      Настроить общее расписание отчётов
+    </a>
+  </div>
+
+  <div class="toolbar">
+    <button
+      #addReportButton
+      class="add-report-btn"
+      data-onboarding-target="add-report"
+      (click)="onAddReport()"
+    >
+      Добавить отчёты
+    </button>
   </div>
 
   @if (loading()) {
@@ -29,13 +47,8 @@
       </div>
       <p class="empty-title">Пу-пу-пустота....</p>
       <p class="empty-hint">Добавьте отчёт в систему</p>
-      <button class="add-report-btn" (click)="onAddReport()">Добавить отчёт</button>
     </div>
   } @else {
-    <div class="toolbar">
-      <button class="add-report-btn" (click)="onAddReport()">Добавить отчёт</button>
-    </div>
-
     <div class="reports-list">
       @for (group of groupedReports(); track trackByGroupType($index, group)) {
         <div class="report-group">
@@ -50,7 +63,15 @@
                   </span>
                 </div>
                 <div class="report-actions">
-                  <button class="action-btn configure-btn" (click)="onConfigureReport(report)">Настроить</button>
+                  <button
+                    #configureReportButton
+                    class="action-btn configure-btn"
+                    data-onboarding-target="configure-report"
+                    [attr.data-report-id]="report.id"
+                    (click)="onConfigureReport(report)"
+                  >
+                    Настроить
+                  </button>
                 </div>
               </div>
             }

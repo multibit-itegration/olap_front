@@ -1,0 +1,168 @@
+@if (onboarding.completionActive()) {
+  <div class="onboarding-overlay" role="presentation">
+    <section
+      class="onboarding-card onboarding-complete-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="onboarding-complete-title"
+      aria-describedby="onboarding-complete-description">
+      <button class="onboarding-close" type="button" aria-label="Закрыть сообщение" (click)="onboarding.closeCompletion()">
+        ×
+      </button>
+
+      <div class="onboarding-complete-mark" aria-hidden="true">
+        <span></span>
+      </div>
+
+      <p class="onboarding-eyebrow">Готово</p>
+      <h2 id="onboarding-complete-title">Обучение пройдено</h2>
+      <p id="onboarding-complete-description" class="onboarding-description">
+        Отлично! Добавленный отчёт появился в ботах ВК и Telegram. Теперь его можно получать прямо из подключенных каналов.
+      </p>
+
+      <div class="onboarding-actions">
+        <button class="onboarding-primary" type="button" (click)="onboarding.closeCompletion()">
+          Отлично
+        </button>
+      </div>
+    </section>
+  </div>
+} @else if (onboarding.active()) {
+  @if (onboarding.step().id === 'welcome') {
+    <div class="onboarding-overlay" role="presentation">
+      <section
+        class="onboarding-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+        aria-describedby="onboarding-description">
+        <button class="onboarding-close" type="button" aria-label="Закрыть онбординг" (click)="onboarding.close()">
+          ×
+        </button>
+
+        <div class="onboarding-mark" aria-hidden="true">
+          <img src="/images/olap-express-logo.jpg" alt="" />
+        </div>
+
+        <p class="onboarding-eyebrow">{{ onboarding.step().eyebrow }}</p>
+        <h2 id="onboarding-title">{{ onboarding.step().title }}</h2>
+        <p id="onboarding-description" class="onboarding-description">
+          {{ onboarding.step().description }}
+        </p>
+
+        <div class="onboarding-actions">
+          <button class="onboarding-primary" type="button" (click)="onboarding.continueFromWelcome()">
+            {{ onboarding.step().actionLabel }}
+          </button>
+        </div>
+      </section>
+    </div>
+  } @else if (onboarding.step().id !== 'database_form') {
+    <div class="onboarding-guide-overlay" role="presentation">
+      @if (onboarding.targetRect(); as rect) {
+        <div
+          class="onboarding-guide-backdrop-piece"
+          [style.top.px]="0"
+          [style.left.px]="0"
+          [style.width.px]="viewportWidth()"
+          [style.height.px]="backdropTopHeight(rect)">
+        </div>
+        <div
+          class="onboarding-guide-backdrop-piece"
+          [style.top.px]="backdropMiddleTop(rect)"
+          [style.left.px]="0"
+          [style.width.px]="backdropLeftWidth(rect)"
+          [style.height.px]="backdropMiddleHeight(rect)">
+        </div>
+        <div
+          class="onboarding-guide-backdrop-piece"
+          [style.top.px]="backdropMiddleTop(rect)"
+          [style.left.px]="backdropRightLeft(rect)"
+          [style.width.px]="backdropRightWidth(rect)"
+          [style.height.px]="backdropMiddleHeight(rect)">
+        </div>
+        <div
+          class="onboarding-guide-backdrop-piece"
+          [style.top.px]="backdropBottomTop(rect)"
+          [style.left.px]="0"
+          [style.width.px]="viewportWidth()"
+          [style.height.px]="backdropBottomHeight(rect)">
+        </div>
+      } @else {
+        <div class="onboarding-guide-backdrop"></div>
+      }
+
+      @if (onboarding.targetRect(); as rect) {
+        <div
+          class="onboarding-spotlight"
+          [style.top.px]="rect.top"
+          [style.left.px]="rect.left"
+          [style.width.px]="rect.width"
+          [style.height.px]="rect.height">
+        </div>
+
+        <button
+          class="onboarding-target-clone onboarding-target-clone-database {{ onboarding.step().targetClass ?? '' }}"
+          type="button"
+          [style.top.px]="rect.top"
+          [style.left.px]="rect.left"
+          [style.width.px]="rect.width"
+          [style.height.px]="rect.height"
+          (click)="onTargetClick()">
+          {{ onboarding.targetLabel() }}
+        </button>
+      }
+
+      @if (onboarding.secondaryTargetRect(); as rect) {
+        <div
+          class="onboarding-spotlight onboarding-spotlight-secondary"
+          [style.top.px]="rect.top"
+          [style.left.px]="rect.left"
+          [style.width.px]="rect.width"
+          [style.height.px]="rect.height">
+        </div>
+
+        <button
+          class="onboarding-target-clone onboarding-target-clone-plus"
+          type="button"
+          aria-label="Добавить базу данных"
+          [style.top.px]="rect.top"
+          [style.left.px]="rect.left"
+          [style.width.px]="rect.width"
+          [style.height.px]="rect.height"
+          (click)="onboarding.activateTarget()">
+          +
+        </button>
+      }
+
+      <section
+        class="onboarding-guide-card"
+        [class.onboarding-guide-card-positioned]="onboarding.guidePosition()"
+        [class.onboarding-guide-card-compact]="onboarding.step().id === 'report_settings_overview' || onboarding.step().id === 'set_password'"
+        [style.top.px]="onboarding.guidePosition()?.top"
+        [style.width.px]="onboarding.guidePosition()?.width"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-guide-title"
+        aria-describedby="onboarding-guide-description">
+        <button class="onboarding-close" type="button" aria-label="Закрыть онбординг" (click)="onboarding.close()">
+          ×
+        </button>
+
+        <p class="onboarding-eyebrow">{{ onboarding.step().eyebrow }}</p>
+        <h2 id="onboarding-guide-title">{{ onboarding.step().title }}</h2>
+        <p id="onboarding-guide-description" class="onboarding-description">
+          {{ onboarding.step().description }}
+        </p>
+
+        @if (onboarding.step().id === 'set_password') {
+          <div class="onboarding-guide-actions">
+            <button class="onboarding-primary onboarding-guide-primary" type="button" (click)="onTargetClick()">
+              {{ onboarding.step().actionLabel }}
+            </button>
+          </div>
+        }
+      </section>
+    </div>
+  }
+}
