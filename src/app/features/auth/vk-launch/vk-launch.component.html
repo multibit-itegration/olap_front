@@ -15,6 +15,29 @@
       </div>
     }
 
+    @switch (bridgeStatus()) {
+      @case ('ready') {
+        <div class="vk-launch-status success">
+          VK Bridge инициализирован.
+        </div>
+      }
+      @case ('failed') {
+        <div class="vk-launch-status warning">
+          VK Bridge не ответил.
+        </div>
+      }
+      @case ('standalone') {
+        <div class="vk-launch-status warning">
+          Страница открыта не внутри VK iframe или WebView.
+        </div>
+      }
+      @default {
+        <div class="vk-launch-status pending">
+          Инициализируем VK Bridge.
+        </div>
+      }
+    }
+
     @if (missingParamKeys.length > 0) {
       <div class="vk-launch-status warning">
         Не хватает: {{ missingParamKeys.join(', ') }}.
