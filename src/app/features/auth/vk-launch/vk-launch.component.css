@@ -1,0 +1,200 @@
+.vk-launch-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 24px;
+  background:
+    linear-gradient(145deg, rgba(42, 152, 204, 0.96), rgba(22, 135, 217, 0.94)),
+    #2a98cc;
+}
+
+.vk-launch-panel {
+  width: min(100%, 960px);
+  box-sizing: border-box;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 24px 70px rgba(18, 73, 118, 0.26);
+  color: #fff;
+  backdrop-filter: blur(14px);
+}
+
+.vk-launch-header {
+  margin-bottom: 20px;
+}
+
+.vk-launch-eyebrow,
+.vk-launch-title,
+.vk-launch-copy-message,
+.vk-launch-empty {
+  margin: 0;
+}
+
+.vk-launch-eyebrow {
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.vk-launch-title {
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.vk-launch-status {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vk-launch-status.success {
+  border-color: rgba(158, 255, 207, 0.68);
+  background: rgba(22, 116, 84, 0.3);
+}
+
+.vk-launch-status.warning {
+  border-color: rgba(255, 220, 149, 0.72);
+  background: rgba(125, 81, 15, 0.28);
+}
+
+.vk-launch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.vk-launch-block,
+.vk-launch-params {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(10, 53, 88, 0.2);
+}
+
+.vk-launch-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.vk-launch-block h2,
+.vk-launch-params h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.vk-launch-block button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1672b8;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vk-launch-block button:hover {
+  background: #f0f6fb;
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 168px;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #103b5d;
+  font: 13px/1.45 monospace;
+}
+
+.vk-launch-copy-message {
+  min-height: 20px;
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vk-launch-params {
+  margin-top: 18px;
+}
+
+.vk-launch-params h2 {
+  margin-bottom: 12px;
+}
+
+.vk-launch-params dl {
+  margin: 0;
+}
+
+.vk-launch-param-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 190px) minmax(0, 1fr);
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.vk-launch-param-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.vk-launch-param-row dt {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.vk-launch-param-row dd {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  overflow-wrap: anywhere;
+}
+
+.vk-launch-empty {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 720px) {
+  .vk-launch-page {
+    padding: 12px;
+  }
+
+  .vk-launch-panel {
+    padding: 18px;
+  }
+
+  .vk-launch-title {
+    font-size: 26px;
+  }
+
+  .vk-launch-grid,
+  .vk-launch-param-row {
+    grid-template-columns: 1fr;
+  }
+
+  .vk-launch-block-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

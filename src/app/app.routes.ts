@@ -18,6 +18,10 @@ export const routes: Routes = [
     data: { telegramAuth: true }
   },
   {
+    path: 'loginvk',
+    loadComponent: () => import('./features/auth/vk-launch/vk-launch.component').then(m => m.VkLaunchComponent)
+  },
+  {
     path: 'reg',
     loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
   },

@@ -1,0 +1,71 @@
+<main class="vk-launch-page">
+  <section class="vk-launch-panel">
+    <header class="vk-launch-header">
+      <p class="vk-launch-eyebrow">VK Mini App</p>
+      <h1 class="vk-launch-title">Параметры запуска</h1>
+    </header>
+
+    @if (hasVkLaunchParams) {
+      <div class="vk-launch-status success">
+        Получены параметры VK.
+      </div>
+    } @else {
+      <div class="vk-launch-status warning">
+        Параметры VK пока не найдены. Откройте этот путь из VK Mini App.
+      </div>
+    }
+
+    @if (missingParamKeys.length > 0) {
+      <div class="vk-launch-status warning">
+        Не хватает: {{ missingParamKeys.join(', ') }}.
+      </div>
+    }
+
+    <div class="vk-launch-grid">
+      <section class="vk-launch-block">
+        <div class="vk-launch-block-header">
+          <h2>Raw launch params</h2>
+          <button type="button" (click)="copy(rawLaunchParams)">Копировать</button>
+        </div>
+        <textarea
+          readonly
+          [value]="rawLaunchParams"
+          aria-label="VK raw launch params"
+        ></textarea>
+      </section>
+
+      <section class="vk-launch-block">
+        <div class="vk-launch-block-header">
+          <h2>JSON для backend</h2>
+          <button type="button" (click)="copy(backendPayload)">Копировать</button>
+        </div>
+        <textarea
+          readonly
+          [value]="backendPayload"
+          aria-label="VK backend payload"
+        ></textarea>
+      </section>
+    </div>
+
+    @if (copyMessage()) {
+      <p class="vk-launch-copy-message">{{ copyMessage() }}</p>
+    }
+
+    <section class="vk-launch-params">
+      <h2>Распознанные поля</h2>
+
+      @if (vkParams.length > 0) {
+        <dl>
+          @for (param of vkParams; track param.key) {
+            <div class="vk-launch-param-row">
+              <dt>{{ param.key }}</dt>
+              <dd>{{ param.value }}</dd>
+            </div>
+          }
+        </dl>
+      } @else {
+        <p class="vk-launch-empty">Поля появятся после запуска через VK.</p>
+      }
+    </section>
+  </section>
+</main>
