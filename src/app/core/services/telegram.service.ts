@@ -1,5 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
-import { TelegramAuthDebugService } from './telegram-auth-debug.service';
+import { Injectable, signal, computed } from '@angular/core';
 
 // TypeScript interfaces for Telegram WebApp API
 export interface TelegramWebAppUser {
@@ -114,7 +113,6 @@ declare global {
   providedIn: 'root'
 })
 export class TelegramService {
-  private readonly debug = inject(TelegramAuthDebugService);
   private readonly telegramScriptUrl = 'https://telegram.org/js/telegram-web-app.js';
   private readonly telegramStoredInitParamsKey = '__telegram__initParams';
   private readonly signedInitDataKey = 'telegram_signed_init_data';
@@ -132,45 +130,26 @@ export class TelegramService {
   readonly isReady = computed(() => this._isTelegramWebApp() && this._initData() !== null);
 
   constructor() {
-    const telegramLaunch = this.detectTelegramLaunch();
-    this._isTelegramLaunch.set(telegramLaunch);
-    this.debug.log('Telegram SDK', 'TelegramService создан', 'info', {
-      sdkOnWindow: window.Telegram?.WebApp !== undefined,
-      telegramLaunch
-    });
-    this.detectTelegramWebApp('constructor');
+    this._isTelegramLaunch.set(this.detectTelegramLaunch());
+    this.detectTelegramWebApp();
   }
 
   initialize(timeoutMs = 8000, forceTelegramLaunch = false): Promise<boolean> {
-    this.debug.log('Telegram SDK', 'initialize вызван', 'info', {
-      alreadyReady: this.isReady(),
-      forceTelegramLaunch,
-      telegramLaunch: this._isTelegramLaunch()
-    });
-
     if (this.isReady()) {
-      this.debug.log('Telegram SDK', 'initialize: initData уже готов', 'success');
       return Promise.resolve(true);
     }
 
     if (forceTelegramLaunch) {
       this._isTelegramLaunch.set(true);
-      this.debug.log('Telegram SDK', 'initialize: Telegram route принудительно помечен как launch');
     }
 
     if (!this._isTelegramLaunch()) {
-      this.debug.log('Telegram SDK', 'initialize: Telegram launch не распознан', 'warning');
       return Promise.resolve(false);
     }
 
     return this.loadSdk(timeoutMs).then(() => {
-      this.detectTelegramWebApp('sdk-loaded');
-      const isReady = this.isReady();
-      this.debug.log('Telegram SDK', 'initialize: SDK проверен', isReady ? 'success' : 'warning', {
-        ready: isReady,
-        hasInitData: this._initData() !== null
-      });
-      return isReady;
+      this.detectTelegramWebApp();
+      return this.isReady();
     });
   }
 
@@ -210,18 +189,13 @@ export class TelegramService {
 
   private loadSdk(timeoutMs: number): Promise<boolean> {
     if (window.Telegram?.WebApp) {
-      this.debug.log('Telegram SDK', 'loadSdk: SDK уже есть в window', 'success');
       return Promise.resolve(true);
     }
 
     if (this.sdkLoadPromise) {
-      this.debug.log('Telegram SDK', 'loadSdk: ждем уже начатую загрузку SDK');
       return this.sdkLoadPromise;
     }
 
-    this.debug.log('Telegram SDK', 'loadSdk: ждем загрузку скрипта', 'info', {
-      timeoutMs
-    });
     this.sdkLoadPromise = new Promise<boolean>((resolve, reject) => {
       const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${this.telegramScriptUrl}"]`);
       const script = existingScript ?? document.createElement('script');
@@ -240,9 +214,6 @@ export class TelegramService {
 
         settled = true;
         cleanup();
-        this.debug.log('Telegram SDK', 'loadSdk: скрипт загрузился', 'success', {
-          reusedScript: existingScript !== null
-        });
         resolve(value);
       };
 
@@ -253,7 +224,6 @@ export class TelegramService {
 
         settled = true;
         cleanup();
-        this.debug.log('Telegram SDK', 'loadSdk: скрипт не загрузился', 'error');
         reject(new Error('Telegram WebApp SDK failed to load'));
       };
 
@@ -268,7 +238,6 @@ export class TelegramService {
         script.src = this.telegramScriptUrl;
         script.async = true;
         document.head.appendChild(script);
-        this.debug.log('Telegram SDK', 'loadSdk: добавили скрипт в head');
       }
     });
 
@@ -279,28 +248,20 @@ export class TelegramService {
     return this.sdkLoadPromise;
   }
 
-  private detectTelegramWebApp(trigger: 'constructor' | 'sdk-loaded'): void {
+  private detectTelegramWebApp(): void {
     const telegram = window.Telegram?.WebApp;
 
     if (!telegram) {
-      this.debug.log('Telegram SDK', 'WebApp API еще нет в window', 'warning', {
-        trigger
-      });
       return;
     }
 
     const initData = telegram.initData;
 
     if (!initData || initData.trim() === '') {
-      this.debug.log('Telegram SDK', 'WebApp API есть, но initData пустой', 'warning', {
-        trigger,
-        platform: telegram.platform || null,
-        version: telegram.version || null
-      });
       return;
     }
 
-    const signedInitData = this.resolveSignedInitData(initData, trigger);
+    const signedInitData = this.resolveSignedInitData(initData);
     if (!signedInitData) {
       return;
     }
@@ -308,13 +269,6 @@ export class TelegramService {
     // We are inside Telegram WebApp with valid initData
     this._isTelegramWebApp.set(true);
     this._initData.set(signedInitData);
-    this.debug.log('Telegram SDK', 'initData получен', 'success', {
-      trigger,
-      platform: telegram.platform || null,
-      version: telegram.version || null,
-      hasTelegramUser: telegram.initDataUnsafe?.user !== undefined,
-      usedSavedSignedInitData: signedInitData !== initData
-    });
 
     // Extract user info from initDataUnsafe if available
     const user = telegram.initDataUnsafe?.user;
@@ -333,39 +287,23 @@ export class TelegramService {
     return window.Telegram?.WebApp;
   }
 
-  private resolveSignedInitData(initData: string, trigger: 'constructor' | 'sdk-loaded'): string | null {
+  private resolveSignedInitData(initData: string): string | null {
     if (this.hasHash(initData)) {
       this.storeSignedInitData(initData);
       return initData;
     }
 
-    this.debug.log('Telegram SDK', 'Текущий initData пришел без hash', 'warning', {
-      trigger,
-      keys: this.getInitDataKeys(initData)
-    });
-
     const savedSignedInitData = this.readSignedInitData();
     if (savedSignedInitData && this.hasHash(savedSignedInitData)) {
-      this.debug.log('Telegram SDK', 'Берем сохраненный подписанный initData после refresh', 'success', {
-        trigger,
-        keys: this.getInitDataKeys(savedSignedInitData)
-      });
       return savedSignedInitData;
     }
 
-    this.debug.log('Telegram SDK', 'Подписанный initData с hash недоступен', 'error', {
-      trigger
-    });
     return null;
   }
 
   private hasHash(initData: string): boolean {
     const hash = new URLSearchParams(initData).get('hash');
     return typeof hash === 'string' && hash.trim() !== '';
-  }
-
-  private getInitDataKeys(initData: string): string {
-    return [...new URLSearchParams(initData).keys()].sort().join(',');
   }
 
   private storeSignedInitData(initData: string): void {
