@@ -1,0 +1,104 @@
+.telegram-debug-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 50;
+  display: grid;
+  width: min(560px, calc(100vw - 24px));
+  max-height: min(48vh, 440px);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 8px;
+  background: rgba(17, 31, 46, 0.92);
+  box-shadow: 0 18px 48px rgba(10, 20, 31, 0.42);
+  color: white;
+  text-align: left;
+}
+
+.telegram-debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+}
+
+.telegram-debug-header button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+}
+
+.telegram-debug-entries {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  overflow: auto;
+  padding: 10px;
+}
+
+.telegram-debug-entry {
+  min-width: 0;
+  padding: 9px 10px;
+  border-left: 3px solid #76d7ff;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+}
+
+.telegram-debug-entry.success {
+  border-left-color: #78dc7c;
+}
+
+.telegram-debug-entry.warning {
+  border-left-color: #ffd166;
+}
+
+.telegram-debug-entry.error {
+  border-left-color: #ff8f8f;
+}
+
+.telegram-debug-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 11px;
+}
+
+.telegram-debug-entry p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.telegram-debug-entry code {
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+  color: #d9f3ff;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+@media (max-width: 560px) {
+  .telegram-debug-panel {
+    right: 8px;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+    max-height: min(42vh, 360px);
+  }
+}

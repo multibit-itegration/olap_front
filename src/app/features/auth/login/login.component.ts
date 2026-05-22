@@ -7,13 +7,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { switchMap, finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/api/auth.service';
 import { TelegramService } from '../../../core/services/telegram.service';
+import { TelegramAuthDebugDetails, TelegramAuthDebugService } from '../../../core/services/telegram-auth-debug.service';
 import { LoginRequest } from '../../../core/api/models/auth.models';
 import { formatPhoneForLogin } from '../../../shared/utils/phone-formatter';
+import { TelegramAuthDebugPanelComponent } from '../telegram-auth-debug-panel/telegram-auth-debug-panel.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, TelegramAuthDebugPanelComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -22,6 +24,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly telegramService = inject(TelegramService);
+  private readonly telegramDebug = inject(TelegramAuthDebugService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -33,6 +36,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   isSubmitting = signal(false);
   isTelegramAuthInProgress = signal(false);
   showLoginForm = signal(true);
+  readonly showTelegramDebugPanel = this.isTelegramAuthRoute();
   telegramAuthPhrase = signal('Сверяем цифровой пропуск...');
   loginAuthPhrase = signal('Вход...');
 
@@ -61,17 +65,26 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.logTelegram('Компонент логина инициализирован', 'info', {
+      authenticated: this.authService.isAuthenticated(),
+      hasCurrentUser: this.authService.currentUser() !== null,
+      telegramLaunch: this.telegramService.isTelegramLaunch()
+    });
+
     if (this.authService.isAuthenticated()) {
       if (this.authService.currentUser()) {
+        this.logTelegram('Пользователь уже загружен, перенаправляем по роли', 'success');
         this.redirectByRole();
         return;
       }
 
+      this.logTelegram('Найден сохраненный токен, пробуем загрузить пользователя');
       this.resumeAuthenticatedSession();
       return;
     }
 
     if (this.isTelegramAuthContext()) {
+      this.logTelegram('Нет сохраненного токена, начинаем Telegram init');
       this.prepareTelegramAuth();
     }
   }
@@ -84,9 +97,13 @@ export class LoginComponent implements OnInit, OnDestroy {
   private attemptTelegramAuth(): void {
     const initData = this.telegramService.initData();
     if (!initData) {
+      this.logTelegram('Остановили Telegram auth: initData отсутствует', 'warning');
       return;
     }
 
+    this.logTelegram('Отправляем POST /auth/telegram', 'info', {
+      hasInitData: true
+    });
     this.isTelegramAuthInProgress.set(true);
     this.showLoginForm.set(false);
     this.hasError.set(false);
@@ -94,14 +111,22 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.startTelegramPhraseRotation();
 
     this.authService.telegramAuth(initData).pipe(
-      switchMap(() => this.authService.loadCurrentUser()),
+      switchMap(() => {
+        this.logTelegram('POST /auth/telegram успешен, загружаем GET /users/me', 'success');
+        return this.authService.loadCurrentUser();
+      }),
       finalize(() => {
+        this.logTelegram('Попытка Telegram auth завершилась');
         this.isTelegramAuthInProgress.set(false);
         this.stopTelegramPhraseRotation();
       }),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (user) => {
+        this.logTelegram('GET /users/me успешен, перенаправляем в кабинет', 'success', {
+          role: user.role
+        });
+
         if (user.role === 'admin') {
           this.router.navigate(['/admin/dashboard']);
         } else {
@@ -109,6 +134,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         }
       },
       error: (error: HttpErrorResponse) => {
+        this.logTelegram('Telegram auth завершился ошибкой', 'error', this.httpErrorDetails(error));
         this.showLoginForm.set(true);
         this.hasError.set(true);
 
@@ -122,6 +148,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   private prepareTelegramAuth(): void {
+    this.logTelegram('Запускаем TelegramService.initialize', 'info', {
+      forceTelegramRoute: this.isTelegramAuthRoute()
+    });
     this.isTelegramAuthInProgress.set(true);
     this.showLoginForm.set(false);
     this.hasError.set(false);
@@ -129,19 +158,30 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.startTelegramPhraseRotation();
 
     void this.telegramService.initialize(8000, this.isTelegramAuthRoute()).then((isReady) => {
+      this.logTelegram('TelegramService.initialize вернул результат', isReady ? 'success' : 'warning', {
+        ready: isReady,
+        hasInitData: this.telegramService.initData() !== null
+      });
+
       if (!isReady) {
         this.showTelegramFallback('Не удалось получить данные Telegram. Откройте приложение из Telegram или войдите по номеру телефона.');
         return;
       }
 
       this.attemptTelegramAuth();
-    }).catch(() => {
+    }).catch((error: unknown) => {
+      this.logTelegram('TelegramService.initialize выбросил ошибку', 'error', {
+        reason: error instanceof Error ? error.message : 'unknown'
+      });
       this.showTelegramFallback('Не удалось загрузить Telegram. Попробуйте обновить страницу или войдите по номеру телефона.');
     });
   }
 
   private resumeAuthenticatedSession(): void {
     const isTelegramAuthContext = this.isTelegramAuthContext();
+    this.logTelegram('Пробуем восстановить пользователя по сохраненной сессии', 'info', {
+      telegramContext: isTelegramAuthContext
+    });
 
     if (isTelegramAuthContext) {
       this.isTelegramAuthInProgress.set(true);
@@ -154,11 +194,16 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.authService.loadCurrentUser().pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
-      next: () => this.redirectByRole(),
-      error: () => {
+      next: () => {
+        this.logTelegram('Сохраненная сессия восстановлена', 'success');
+        this.redirectByRole();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.logTelegram('Не удалось восстановить сохраненную сессию', 'warning', this.httpErrorDetails(error));
         this.authService.logout();
 
         if (isTelegramAuthContext) {
+          this.logTelegram('После сбоя сессии повторяем Telegram init');
           this.prepareTelegramAuth();
           return;
         }
@@ -179,6 +224,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   private showTelegramFallback(message: string): void {
+    this.logTelegram('Показан fallback ручного входа', 'warning', {
+      message
+    });
     this.isTelegramAuthInProgress.set(false);
     this.showLoginForm.set(true);
     this.hasError.set(true);
@@ -282,5 +330,33 @@ export class LoginComponent implements OnInit, OnDestroy {
   private redirectByRole(): void {
     const role = this.authService.userRole();
     this.router.navigate([role === 'admin' ? '/admin/dashboard' : '/user/databases']);
+  }
+
+  private logTelegram(
+    message: string,
+    level: 'info' | 'success' | 'warning' | 'error' = 'info',
+    details?: TelegramAuthDebugDetails
+  ): void {
+    if (this.showTelegramDebugPanel) {
+      this.telegramDebug.log('Login', message, level, details);
+    }
+  }
+
+  private httpErrorDetails(error: HttpErrorResponse): TelegramAuthDebugDetails {
+    return {
+      status: error.status,
+      statusText: error.statusText || null,
+      url: error.url,
+      detail: this.extractBackendDetail(error.error)
+    };
+  }
+
+  private extractBackendDetail(errorBody: unknown): string | undefined {
+    if (!errorBody || typeof errorBody !== 'object') {
+      return undefined;
+    }
+
+    const detail = (errorBody as Record<string, unknown>)['detail'];
+    return typeof detail === 'string' ? detail : undefined;
   }
 }

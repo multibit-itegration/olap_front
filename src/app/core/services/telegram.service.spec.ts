@@ -1,4 +1,5 @@
 import { TelegramService } from './telegram.service';
+import { TestBed } from '@angular/core/testing';
 
 describe('TelegramService', () => {
   const storedInitParamsKey = '__telegram__initParams';
@@ -7,6 +8,7 @@ describe('TelegramService', () => {
   afterEach(() => {
     window.sessionStorage.removeItem(storedInitParamsKey);
     window.Telegram = originalTelegram;
+    TestBed.resetTestingModule();
   });
 
   it('recognizes a Telegram reload from stored launch data', () => {
@@ -15,7 +17,7 @@ describe('TelegramService', () => {
       tgWebAppData: 'query_id=stored&hash=signed'
     }));
 
-    const service = new TelegramService();
+    const service = TestBed.inject(TelegramService);
 
     expect(service.isTelegramLaunch()).toBeTrue();
   });
@@ -24,7 +26,7 @@ describe('TelegramService', () => {
     window.Telegram = undefined;
     window.sessionStorage.setItem(storedInitParamsKey, '{');
 
-    const service = new TelegramService();
+    const service = TestBed.inject(TelegramService);
 
     expect(service.isTelegramLaunch()).toBeFalse();
   });

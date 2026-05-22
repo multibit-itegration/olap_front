@@ -1,0 +1,26 @@
+<aside class="telegram-debug-panel" aria-live="polite">
+  <header class="telegram-debug-header">
+    <strong>Логи /logintg</strong>
+    <button type="button" (click)="clear()">Очистить</button>
+  </header>
+
+  <div class="telegram-debug-entries">
+    @for (entry of entries(); track entry.id) {
+      <article
+        class="telegram-debug-entry"
+        [class.success]="entry.level === 'success'"
+        [class.warning]="entry.level === 'warning'"
+        [class.error]="entry.level === 'error'"
+      >
+        <div class="telegram-debug-meta">
+          <time>{{ entry.timestamp | date:'HH:mm:ss.SSS' }}</time>
+          <span>{{ entry.source }}</span>
+        </div>
+        <p>{{ entry.message }}</p>
+        @if (entry.details) {
+          <code>{{ entry.details }}</code>
+        }
+      </article>
+    }
+  </div>
+</aside>
