@@ -14,7 +14,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       if (error.status === 401 && !isAuthRequest) {
         authService.logout();
-        router.navigate(['/login']);
+
+        if (router.url.split(/[?#]/)[0] !== '/logintg') {
+          router.navigate(['/login']);
+        }
       }
       return throwError(() => error);
     })

@@ -1,4 +1,5 @@
-import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, DestroyRef, signal, inject, OnInit, OnDestroy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -23,6 +24,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private readonly telegramService = inject(TelegramService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   loginForm: FormGroup;
   showPassword = signal(false);
@@ -59,13 +61,17 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Redirect if already authenticated
-    if (this.authService.isAuthenticated() && this.authService.currentUser()) {
-      this.redirectByRole();
+    if (this.authService.isAuthenticated()) {
+      if (this.authService.currentUser()) {
+        this.redirectByRole();
+        return;
+      }
+
+      this.resumeAuthenticatedSession();
       return;
     }
 
-    if (this.telegramService.isTelegramLaunch() || this.isTelegramAuthRoute()) {
+    if (this.isTelegramAuthContext()) {
       this.prepareTelegramAuth();
     }
   }
@@ -92,7 +98,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       finalize(() => {
         this.isTelegramAuthInProgress.set(false);
         this.stopTelegramPhraseRotation();
-      })
+      }),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (user) => {
         if (user.role === 'admin') {
@@ -131,6 +138,40 @@ export class LoginComponent implements OnInit, OnDestroy {
     }).catch(() => {
       this.showTelegramFallback('Не удалось загрузить Telegram. Попробуйте обновить страницу или войдите по номеру телефона.');
     });
+  }
+
+  private resumeAuthenticatedSession(): void {
+    const isTelegramAuthContext = this.isTelegramAuthContext();
+
+    if (isTelegramAuthContext) {
+      this.isTelegramAuthInProgress.set(true);
+      this.showLoginForm.set(false);
+      this.hasError.set(false);
+      this.errorMessage.set('');
+      this.startTelegramPhraseRotation();
+    }
+
+    this.authService.loadCurrentUser().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: () => this.redirectByRole(),
+      error: () => {
+        this.authService.logout();
+
+        if (isTelegramAuthContext) {
+          this.prepareTelegramAuth();
+          return;
+        }
+
+        this.isTelegramAuthInProgress.set(false);
+        this.stopTelegramPhraseRotation();
+        this.showLoginForm.set(true);
+      }
+    });
+  }
+
+  private isTelegramAuthContext(): boolean {
+    return this.telegramService.isTelegramLaunch() || this.isTelegramAuthRoute();
   }
 
   private isTelegramAuthRoute(): boolean {
@@ -190,7 +231,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       finalize(() => {
         this.isSubmitting.set(false);
         this.stopLoginPhraseRotation();
-      })
+      }),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (user) => {
         if (user.role === 'admin') {
