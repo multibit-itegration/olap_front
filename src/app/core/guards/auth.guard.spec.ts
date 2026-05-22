@@ -3,10 +3,12 @@ import { Router, UrlTree, ActivatedRouteSnapshot, RouterStateSnapshot } from '@a
 import { authGuard } from './auth.guard';
 import { AuthService } from '../api/auth.service';
 import { User } from '../api/models/user.models';
+import { TelegramService } from '../services/telegram.service';
 import { of, throwError } from 'rxjs';
 
 describe('authGuard', () => {
   let authService: jasmine.SpyObj<AuthService>;
+  let telegramService: jasmine.SpyObj<TelegramService>;
   let router: jasmine.SpyObj<Router>;
   let mockUrlTree: UrlTree;
   let mockRoute: ActivatedRouteSnapshot;
@@ -25,10 +27,16 @@ describe('authGuard', () => {
     const authServiceSpy = jasmine.createSpyObj('AuthService', [
       'isAuthenticated',
       'loadCurrentUser',
-      'logout'
+      'logout',
+      'telegramAuth'
     ], {
       currentUser: jasmine.createSpy('currentUser')
     });
+    const telegramServiceSpy = jasmine.createSpyObj('TelegramService', [
+      'isTelegramLaunch',
+      'initialize',
+      'initData'
+    ]);
 
     const routerSpy = jasmine.createSpyObj('Router', ['createUrlTree']);
     mockUrlTree = {} as UrlTree;
@@ -37,12 +45,16 @@ describe('authGuard', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: authServiceSpy },
+        { provide: TelegramService, useValue: telegramServiceSpy },
         { provide: Router, useValue: routerSpy }
       ]
     });
 
     authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
+    telegramService = TestBed.inject(TelegramService) as jasmine.SpyObj<TelegramService>;
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    telegramService.isTelegramLaunch.and.returnValue(false);
+    telegramService.initData.and.returnValue(null);
 
     mockRoute = {} as ActivatedRouteSnapshot;
     mockState = { url: '/test-route' } as RouterStateSnapshot;
@@ -264,6 +276,38 @@ describe('authGuard', () => {
               expect(router.createUrlTree).toHaveBeenCalledWith(['/login']);
               done();
             }
+          });
+        } else {
+          fail('Expected Observable');
+        }
+      });
+    });
+
+    it('should reauthenticate with Telegram when session resume fails inside the mini app', (done) => {
+      authService.isAuthenticated.and.returnValue(true);
+      authService.currentUser.and.returnValue(null);
+      authService.loadCurrentUser.and.returnValues(
+        throwError(() => new Error('Stored session failed')),
+        of(mockUser)
+      );
+      authService.telegramAuth.and.returnValue(of({ session_token: 'telegram-token' }));
+      telegramService.isTelegramLaunch.and.returnValue(true);
+      telegramService.initialize.and.returnValue(Promise.resolve(true));
+      telegramService.initData.and.returnValue('stored-init-data');
+
+      TestBed.runInInjectionContext(() => {
+        const result = authGuard(mockRoute, mockState);
+
+        if (typeof result === 'object' && 'subscribe' in result) {
+          result.subscribe({
+            next: (allowed) => {
+              expect(allowed).toBe(true);
+              expect(authService.logout).toHaveBeenCalledTimes(1);
+              expect(telegramService.initialize).toHaveBeenCalledTimes(1);
+              expect(authService.telegramAuth).toHaveBeenCalledWith('stored-init-data');
+              done();
+            },
+            error: () => fail('Should restore Telegram auth')
           });
         } else {
           fail('Expected Observable');

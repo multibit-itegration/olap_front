@@ -114,6 +114,7 @@ declare global {
 })
 export class TelegramService {
   private readonly telegramScriptUrl = 'https://telegram.org/js/telegram-web-app.js';
+  private readonly telegramStoredInitParamsKey = '__telegram__initParams';
   private readonly _isTelegramWebApp = signal<boolean>(false);
   private readonly _initData = signal<string | null>(null);
   private readonly _telegramUser = signal<TelegramWebAppUser | null>(null);
@@ -157,7 +158,9 @@ export class TelegramService {
     }
 
     const launchParams = new URLSearchParams(this.getTelegramParamsSource());
-    return launchParams.has('tgWebAppData') || launchParams.has('tgWebAppVersion');
+    return launchParams.has('tgWebAppData')
+      || launchParams.has('tgWebAppVersion')
+      || this.hasStoredTelegramLaunchData();
   }
 
   private getTelegramParamsSource(): string {
@@ -166,6 +169,21 @@ export class TelegramService {
       : window.location.hash;
 
     return hash || window.location.search;
+  }
+
+  private hasStoredTelegramLaunchData(): boolean {
+    try {
+      const storedParams = window.sessionStorage.getItem(this.telegramStoredInitParamsKey);
+      if (!storedParams) {
+        return false;
+      }
+
+      const params = JSON.parse(storedParams) as Record<string, unknown>;
+      const initData = params['tgWebAppData'];
+      return typeof initData === 'string' && initData.trim() !== '';
+    } catch {
+      return false;
+    }
   }
 
   private loadSdk(timeoutMs: number): Promise<boolean> {
