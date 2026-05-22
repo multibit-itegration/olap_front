@@ -117,6 +117,7 @@ export class TelegramService {
   private readonly debug = inject(TelegramAuthDebugService);
   private readonly telegramScriptUrl = 'https://telegram.org/js/telegram-web-app.js';
   private readonly telegramStoredInitParamsKey = '__telegram__initParams';
+  private readonly signedInitDataKey = 'telegram_signed_init_data';
   private readonly _isTelegramWebApp = signal<boolean>(false);
   private readonly _initData = signal<string | null>(null);
   private readonly _telegramUser = signal<TelegramWebAppUser | null>(null);
@@ -299,14 +300,20 @@ export class TelegramService {
       return;
     }
 
+    const signedInitData = this.resolveSignedInitData(initData, trigger);
+    if (!signedInitData) {
+      return;
+    }
+
     // We are inside Telegram WebApp with valid initData
     this._isTelegramWebApp.set(true);
-    this._initData.set(initData);
+    this._initData.set(signedInitData);
     this.debug.log('Telegram SDK', 'initData получен', 'success', {
       trigger,
       platform: telegram.platform || null,
       version: telegram.version || null,
-      hasTelegramUser: telegram.initDataUnsafe?.user !== undefined
+      hasTelegramUser: telegram.initDataUnsafe?.user !== undefined,
+      usedSavedSignedInitData: signedInitData !== initData
     });
 
     // Extract user info from initDataUnsafe if available
@@ -324,5 +331,56 @@ export class TelegramService {
 
   getTelegramWebApp(): TelegramWebApp | undefined {
     return window.Telegram?.WebApp;
+  }
+
+  private resolveSignedInitData(initData: string, trigger: 'constructor' | 'sdk-loaded'): string | null {
+    if (this.hasHash(initData)) {
+      this.storeSignedInitData(initData);
+      return initData;
+    }
+
+    this.debug.log('Telegram SDK', 'Текущий initData пришел без hash', 'warning', {
+      trigger,
+      keys: this.getInitDataKeys(initData)
+    });
+
+    const savedSignedInitData = this.readSignedInitData();
+    if (savedSignedInitData && this.hasHash(savedSignedInitData)) {
+      this.debug.log('Telegram SDK', 'Берем сохраненный подписанный initData после refresh', 'success', {
+        trigger,
+        keys: this.getInitDataKeys(savedSignedInitData)
+      });
+      return savedSignedInitData;
+    }
+
+    this.debug.log('Telegram SDK', 'Подписанный initData с hash недоступен', 'error', {
+      trigger
+    });
+    return null;
+  }
+
+  private hasHash(initData: string): boolean {
+    const hash = new URLSearchParams(initData).get('hash');
+    return typeof hash === 'string' && hash.trim() !== '';
+  }
+
+  private getInitDataKeys(initData: string): string {
+    return [...new URLSearchParams(initData).keys()].sort().join(',');
+  }
+
+  private storeSignedInitData(initData: string): void {
+    try {
+      window.sessionStorage.setItem(this.signedInitDataKey, initData);
+    } catch {
+      return;
+    }
+  }
+
+  private readSignedInitData(): string | null {
+    try {
+      return window.sessionStorage.getItem(this.signedInitDataKey);
+    } catch {
+      return null;
+    }
   }
 }
