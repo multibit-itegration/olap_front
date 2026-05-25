@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, EMPTY, of } from 'rxjs';
@@ -25,10 +26,19 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
 import { DeliveryType, Report, ScheduleType, IndividualSchedule, GroupSchedule, ScheduleFrequency, SCHEDULE_FREQUENCY_LABELS, TIMEZONE_CHOICES, WEEKDAY_LABELS } from '../../../core/api/models/report.models';
 import { LinkedChat } from '../../../core/api/models/linked-chats.models';
 
+const DEFAULT_INDIVIDUAL_SCHEDULE_FORM = {
+  frequency: 'daily' as ScheduleFrequency,
+  timezone: 'Europe/Moscow',
+  time: '13:00',
+  weekday: 1,
+  dayOfMonth: '1',
+  dataPeriod: 7
+};
+
 @Component({
   selector: 'app-report-settings',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './report-settings.component.html',
   styleUrls: ['./report-settings.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -512,12 +522,15 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
   private loadIndividualSchedule(): void {
     this.individualScheduleLoading.set(true);
     this.individualScheduleError.set(null);
+    this.existingIndividualSchedule.set(null);
+    this.resetIndividualScheduleForm();
 
     this.reportService.getIndividualSchedule(this.reportId()).pipe(
       takeUntilDestroyed(this.destroyRef),
       catchError((err: HttpErrorResponse) => {
         if (err.status === 404) {
           this.existingIndividualSchedule.set(null);
+          this.resetIndividualScheduleForm();
           this.individualScheduleLoading.set(false);
           return of(null);
         }
@@ -527,16 +540,29 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
       })
     ).subscribe(schedule => {
       if (schedule) {
-        this.existingIndividualSchedule.set(schedule);
-        this.parseIndividualCronToForm(schedule.individual_cron);
-        const matchedTimezone = TIMEZONE_CHOICES.find(
-          tz => tz.value.toLowerCase() === schedule.timezone.toLowerCase()
-        );
-        this.individualTimezone.set(matchedTimezone?.value ?? 'Europe/Moscow');
-        this.individualDataPeriod.set(schedule.data_period_days);
+        this.applyIndividualScheduleToForm(schedule);
       }
       this.individualScheduleLoading.set(false);
     });
+  }
+
+  private applyIndividualScheduleToForm(schedule: IndividualSchedule): void {
+    this.existingIndividualSchedule.set(schedule);
+    this.parseIndividualCronToForm(schedule.individual_cron);
+    const matchedTimezone = TIMEZONE_CHOICES.find(
+      tz => tz.value.toLowerCase() === schedule.timezone.toLowerCase()
+    );
+    this.individualTimezone.set(matchedTimezone?.value ?? DEFAULT_INDIVIDUAL_SCHEDULE_FORM.timezone);
+    this.individualDataPeriod.set(schedule.data_period_days);
+  }
+
+  private resetIndividualScheduleForm(): void {
+    this.individualFrequency.set(DEFAULT_INDIVIDUAL_SCHEDULE_FORM.frequency);
+    this.individualTimezone.set(DEFAULT_INDIVIDUAL_SCHEDULE_FORM.timezone);
+    this.individualTime.set(DEFAULT_INDIVIDUAL_SCHEDULE_FORM.time);
+    this.individualWeekday.set(DEFAULT_INDIVIDUAL_SCHEDULE_FORM.weekday);
+    this.individualDayOfMonth.set(DEFAULT_INDIVIDUAL_SCHEDULE_FORM.dayOfMonth);
+    this.individualDataPeriod.set(DEFAULT_INDIVIDUAL_SCHEDULE_FORM.dataPeriod);
   }
 
   private parseIndividualCronToForm(cron: string): void {
@@ -573,38 +599,62 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
 
   protected onIndividualFrequencyChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.individualFrequency.set(select.value as ScheduleFrequency);
+    this.onIndividualFrequencyValueChange(select.value);
+  }
+
+  protected onIndividualFrequencyValueChange(value: string): void {
+    this.individualFrequency.set(value as ScheduleFrequency);
   }
 
   protected onIndividualTimezoneChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.individualTimezone.set(select.value);
+    this.onIndividualTimezoneValueChange(select.value);
+  }
+
+  protected onIndividualTimezoneValueChange(value: string): void {
+    this.individualTimezone.set(value);
   }
 
   protected onIndividualTimeChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.individualTime.set(input.value);
+    this.onIndividualTimeValueChange(input.value);
+  }
+
+  protected onIndividualTimeValueChange(value: string): void {
+    this.individualTime.set(value);
   }
 
   protected onIndividualWeekdayChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.individualWeekday.set(parseInt(select.value, 10));
+    this.onIndividualWeekdayValueChange(parseInt(select.value, 10));
+  }
+
+  protected onIndividualWeekdayValueChange(value: number): void {
+    this.individualWeekday.set(value);
   }
 
   protected onIndividualDayOfMonthChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const value = parseInt(input.value, 10);
+    this.onIndividualDayOfMonthValueChange(input.value);
+  }
+
+  protected onIndividualDayOfMonthValueChange(value: string | number | null): void {
+    const parsedValue = parseInt(String(value ?? ''), 10);
     // Validate day of month (1-31)
-    const validatedValue = Math.min(31, Math.max(1, value || 1));
+    const validatedValue = Math.min(31, Math.max(1, parsedValue || 1));
     this.individualDayOfMonth.set(validatedValue.toString());
   }
 
   protected onIndividualDataPeriodChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const value = parseInt(input.value, 10);
+    this.onIndividualDataPeriodValueChange(input.value);
+  }
+
+  protected onIndividualDataPeriodValueChange(value: string | number | null): void {
+    const parsedValue = parseInt(String(value ?? ''), 10);
     // Validate range: 1-365 days
-    if (!isNaN(value) && value >= 1 && value <= 365) {
-      this.individualDataPeriod.set(value);
+    if (!isNaN(parsedValue) && parsedValue >= 1 && parsedValue <= 365) {
+      this.individualDataPeriod.set(parsedValue);
     }
   }
 

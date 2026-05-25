@@ -43,6 +43,13 @@
 .field-input:disabled{opacity:.6;cursor:not-allowed;background-color:#e0e0e0}
 select.field-input{cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%23333' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
 input[type="time"].field-input{display:block;max-width:100%;min-width:0;overflow:hidden;text-align:left;-webkit-appearance:none;appearance:none}
+.field-input-with-suffix{display:flex;align-items:center;gap:6px;padding:0 14px;background-color:#fff;border:2px solid #d0d0d0;border-radius:8px;transition:all .2s ease;width:100%;min-width:0}
+.field-input-with-suffix:hover:not(.disabled){border-color:#29B6F6}
+.field-input-with-suffix:focus-within{border-color:#29B6F6;background-color:#f8f9fa}
+.field-input-with-suffix.disabled{opacity:.6;cursor:not-allowed;background-color:#e0e0e0}
+.field-input-with-suffix .field-input-suffix-control{width:4ch;padding:10px 0;border:none;border-radius:0;background:transparent;text-align:right}
+.field-input-with-suffix .field-input-suffix-control:disabled{background:transparent;opacity:1}
+.field-input-suffix{font-size:16px;color:#333;line-height:1}
 .save-schedule-btn{align-self:flex-end;padding:12px 32px;background:linear-gradient(135deg,#00e676 0%,#69f0ae 100%);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,230,118,.3);transition:all .2s ease}
 .save-schedule-btn:hover:not(:disabled){box-shadow:0 4px 12px rgba(0,230,118,.4);transform:translateY(-2px)}
 .save-schedule-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}

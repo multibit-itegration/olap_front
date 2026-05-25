@@ -249,6 +249,7 @@ describe('ReportSettingsComponent', () => {
       routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
       reportServiceSpy.getReport.and.returnValue(of(mockReport));
       reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
+      reportServiceSpy.updateReport.and.returnValue(of({ ...mockReport, delivery_type: 'email' }));
 
       fixture = TestBed.createComponent(ReportSettingsComponent);
       component = fixture.componentInstance;
@@ -571,6 +572,37 @@ describe('ReportSettingsComponent', () => {
 
       setTimeout(() => {
         expect(component['individualTimezone']()).toBe('Europe/Moscow');
+        done();
+      }, 100);
+    });
+
+    it('should render loaded individual schedule values in form controls', (done) => {
+      const loadedSchedule: IndividualSchedule = {
+        ...mockIndividualSchedule,
+        individual_cron: '5 9 15 * *',
+        timezone: 'Asia/Omsk',
+        data_period_days: 21
+      };
+      reportServiceSpy.getReport.and.returnValue(of(mockReport));
+      reportServiceSpy.getIndividualSchedule.and.returnValue(of(loadedSchedule));
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        fixture.detectChanges();
+
+        const block = (fixture.nativeElement as HTMLElement).querySelector('.individual-schedule-block') as HTMLElement;
+        const selects = block.querySelectorAll('select.field-input') as NodeListOf<HTMLSelectElement>;
+        const numberInputs = block.querySelectorAll('input[type="number"]') as NodeListOf<HTMLInputElement>;
+        const timeInput = block.querySelector('input[type="time"]') as HTMLInputElement;
+
+        expect(selects[0].selectedOptions[0].textContent?.trim()).toBe('Ежемесячно');
+        expect(timeInput.value).toBe('09:05');
+        expect(numberInputs[0].value).toBe('15');
+        expect(numberInputs[1].value).toBe('21');
+        expect(selects[1].selectedOptions[0].textContent?.trim()).toBe('Омск (UTC+6)');
         done();
       }, 100);
     });
