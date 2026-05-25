@@ -61,10 +61,10 @@ npm run build
 
 ## API
 
-Backend API: `https://api.olapsender.ru/docs`
+Backend API: `https://api.olapexpress.ru/docs`
 
 Proxy настроен в `proxy.conf.json`:
-- Все запросы на `/api/*` будут перенаправлены на `https://api.olapsender.ru/*`
+- Все запросы на `/api/*` будут перенаправлены на `https://api.olapexpress.ru/*`
 
 ## Реализованные страницы
 

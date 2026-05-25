@@ -1,12 +1,19 @@
 .admin-layout {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background:
+    linear-gradient(180deg, rgba(52, 76, 241, 0.1), transparent 300px),
+    var(--app-bg);
+  color: var(--text-main);
 }
 
 .admin-header {
-  background: linear-gradient(135deg, #29B6F6 0%, #4FC3F7 100%);
-  padding: 16px 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  padding: 14px 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--brand-gradient);
+  box-shadow: var(--brand-glow);
 }
 
 .header-content {
@@ -18,39 +25,44 @@
 }
 
 .logo {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
   color: white;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
+  text-shadow: 0 0 24px rgba(66, 223, 255, 0.42);
+  white-space: nowrap;
 }
 
 .nav-tabs {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex: 1;
   justify-content: center;
 }
 
 .nav-tab {
-  padding: 10px 24px;
-  color: white;
+  padding: 10px 18px;
+  color: rgba(255, 255, 255, 0.88);
   text-decoration: none;
   font-size: 15px;
-  font-weight: 500;
-  border-radius: 24px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  border-radius: 8px;
   transition: all 0.2s ease;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .nav-tab:hover:not(.disabled) {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: white;
 }
 
 .nav-tab.active {
-  background-color: white;
-  color: #29B6F6;
-  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.94);
+  color: var(--brand-deep);
+  font-weight: 800;
 }
 
 .nav-tab.disabled {
@@ -59,11 +71,11 @@
 }
 
 .logout-btn {
-  padding: 8px 20px;
-  background-color: rgba(255, 255, 255, 0.2);
+  padding: 8px 18px;
+  background-color: rgba(255, 255, 255, 0.16);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -71,12 +83,12 @@
 }
 
 .logout-btn:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.26);
 }
 
 .admin-content {
   max-width: 1400px;
-  margin: 32px auto;
+  margin: 28px auto;
   padding: 0 32px;
 }
 
@@ -127,10 +139,11 @@
     bottom: calc(max(20px, env(safe-area-inset-bottom)) + 8px);
     left: 50%;
     width: min(92vw, 430px);
-    background-color: white;
-    border: 1px solid rgba(227, 232, 239, 0.82);
-    border-radius: 24px;
-    box-shadow: 0 14px 34px rgba(16, 24, 40, 0.18);
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(66, 223, 255, 0.22);
+    border-radius: 16px;
+    box-shadow: 0 18px 44px rgba(12, 39, 69, 0.2);
+    backdrop-filter: blur(18px);
     padding: 8px 10px;
     z-index: 1000;
     justify-content: space-around;
@@ -147,22 +160,29 @@
     gap: 4px;
     flex: 1 1 0;
     min-width: 0;
+    min-height: 52px;
     padding: 8px 6px;
-    color: #999;
+    border-radius: 12px;
+    color: var(--text-muted);
     text-decoration: none;
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      color 0.2s ease;
     background: none;
     border: none;
     font-family: inherit;
   }
 
   .bottom-nav-item.active {
-    color: #29B6F6;
+    color: var(--brand-strong);
+    background: rgba(52, 76, 241, 0.09);
+    box-shadow: inset 0 0 0 1px rgba(66, 223, 255, 0.14);
   }
 
   .bottom-nav-item:hover {
-    color: #1e88e5;
+    color: var(--brand-strong);
   }
 
   .bottom-nav-icon {
@@ -197,13 +217,14 @@
   }
 
   .bottom-nav {
-    padding: 6px 0;
+    padding: 6px 8px;
     bottom: calc(max(18px, env(safe-area-inset-bottom)) + 8px);
     width: min(94vw, 390px);
     min-height: 68px;
   }
 
   .bottom-nav-item {
+    min-height: 50px;
     padding: 6px 4px;
     gap: 2px;
   }

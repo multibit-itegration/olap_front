@@ -1,19 +1,26 @@
 /* Import Google Font Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* Global Styles */
 :root {
-  --app-bg: #f4f7fb;
+  --app-bg: #f4f8ff;
   --surface: #fff;
-  --surface-muted: #f8fafc;
-  --border-soft: #e3e8ef;
-  --text-main: #253040;
-  --text-muted: #667085;
-  --brand: #29b6f6;
-  --brand-strong: #1687d9;
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
-  --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
-  --shadow-lg: 0 18px 48px rgba(16, 24, 40, 0.16);
+  --surface-glass: rgba(255, 255, 255, 0.16);
+  --surface-muted: #eef6ff;
+  --border-soft: #cfe0f5;
+  --text-main: #0c2745;
+  --text-muted: #51677f;
+  --brand: #344cf1;
+  --brand-strong: #0b44cf;
+  --brand-deep: #0c4175;
+  --brand-cyan: #42dfff;
+  --brand-sky: #a3dde8;
+  --brand-red: #ff1f1f;
+  --brand-gradient: linear-gradient(135deg, #344cf1 0%, #4773f0 48%, #0b44cf 100%);
+  --brand-glow: 0 0 0 1px rgba(66, 223, 255, 0.36), 0 24px 70px rgba(16, 54, 180, 0.28);
+  --shadow-sm: 0 1px 2px rgba(12, 39, 69, 0.06), 0 1px 3px rgba(12, 39, 69, 0.08);
+  --shadow-md: 0 10px 28px rgba(12, 39, 69, 0.1);
+  --shadow-lg: 0 24px 70px rgba(12, 39, 69, 0.18);
   --motion-fast: 140ms;
   --motion-base: 220ms;
   --motion-slow: 320ms;
@@ -29,7 +36,9 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background: var(--app-bg);
+  background:
+    linear-gradient(180deg, rgba(244, 248, 255, 0.96), rgba(236, 245, 255, 0.98)),
+    var(--app-bg);
   color: var(--text-main);
   margin: 0;
   padding: 0;
@@ -63,7 +72,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(41, 182, 246, 0.28);
+  outline: 3px solid rgba(66, 223, 255, 0.34);
   outline-offset: 2px;
 }
 
@@ -79,12 +88,12 @@ textarea:focus-visible {
 
 :where(.admin-layout, .user-layout) {
   background:
-    radial-gradient(circle at 24px 24px, rgba(41, 182, 246, 0.08), transparent 28px),
+    linear-gradient(180deg, rgba(52, 76, 241, 0.08), transparent 260px),
     var(--app-bg);
 }
 
 :where(.admin-header, .user-header) {
-  box-shadow: 0 10px 28px rgba(22, 135, 217, 0.18);
+  box-shadow: 0 18px 48px rgba(16, 54, 180, 0.2);
 }
 
 :where(.admin-content, .user-content) > * {
@@ -182,8 +191,8 @@ textarea:focus-visible {
   position: relative;
 }
 
-:where(.nav-tab.active, .profile-btn.active, .bottom-nav-item.active) {
-  box-shadow: 0 6px 16px rgba(255, 255, 255, 0.18);
+:where(.nav-tab.active, .profile-btn.active) {
+  box-shadow: 0 10px 24px rgba(66, 223, 255, 0.18);
 }
 
 :where(.form-input, .field-input, .settings-select, .schedule-select, .schedule-input, .modal-search-input) {
@@ -194,7 +203,7 @@ textarea:focus-visible {
 }
 
 :where(.form-input, .field-input, .settings-select, .schedule-select, .schedule-input, .modal-search-input):focus {
-  box-shadow: 0 0 0 4px rgba(41, 182, 246, 0.12);
+  box-shadow: 0 0 0 4px rgba(66, 223, 255, 0.16);
 }
 
 :where(.modal-overlay) {
@@ -209,6 +218,150 @@ textarea:focus-visible {
 
 :where(.form-error, .error-state, .schedule-error, .modal-error) {
   animation: soft-enter var(--motion-base) var(--ease-out) both;
+}
+
+body :is(
+  .reports-container.reports-container,
+  .settings-container.settings-container,
+  .databases-container.databases-container,
+  .users-container.users-container,
+  .licenses-container.licenses-container,
+  .profile-container.profile-container,
+  .linked-chats-container.linked-chats-container,
+  .chats-container.chats-container
+) {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(66, 223, 255, 0.16);
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(12, 39, 69, 0.08);
+}
+
+body :is(.header-section.header-section) {
+  border-bottom-color: rgba(207, 224, 245, 0.92);
+}
+
+body :is(.page-title.page-title, .modal-title.modal-title, .block-title.block-title, .form-title.form-title) {
+  color: var(--text-main);
+  letter-spacing: 0;
+}
+
+body :is(
+  .database-card.database-card,
+  .report-card.report-card,
+  .chat-card.chat-card,
+  .user-card.user-card,
+  .license-card.license-card,
+  .main-settings-block.main-settings-block,
+  .individual-schedule-block.individual-schedule-block,
+  .group-schedule-block.group-schedule-block,
+  .form-container.form-container,
+  .modal-report-group.modal-report-group,
+  .vk-launch-params.vk-launch-params
+) {
+  background: #f8fbff;
+  border: 1px solid rgba(207, 224, 245, 0.95);
+  border-radius: 8px;
+}
+
+body :is(
+  .database-card.database-card,
+  .report-card.report-card,
+  .chat-card.chat-card,
+  .user-card.user-card,
+  .license-card.license-card
+):hover {
+  background: #eef6ff;
+  border-color: rgba(66, 223, 255, 0.32);
+}
+
+body :is(
+  .add-btn.add-btn,
+  .add-report-btn.add-report-btn,
+  .add-database-btn.add-database-btn,
+  .submit-btn.submit-btn,
+  .save-btn.save-btn,
+  .save-settings-btn.save-settings-btn,
+  .save-schedule-btn.save-schedule-btn,
+  .feature-request-btn.feature-request-btn,
+  .retry-btn.retry-btn,
+  .telegram-button.telegram-button,
+  .telegram-link-btn.telegram-link-btn,
+  .btn-save.btn-save,
+  .update-structure-btn.update-structure-btn
+) {
+  background: var(--brand-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 10px 24px rgba(52, 76, 241, 0.24);
+}
+
+body :is(
+  .add-btn.add-btn,
+  .add-report-btn.add-report-btn,
+  .add-database-btn.add-database-btn,
+  .submit-btn.submit-btn,
+  .save-btn.save-btn,
+  .save-settings-btn.save-settings-btn,
+  .save-schedule-btn.save-schedule-btn,
+  .feature-request-btn.feature-request-btn,
+  .retry-btn.retry-btn,
+  .telegram-button.telegram-button,
+  .telegram-link-btn.telegram-link-btn,
+  .btn-save.btn-save,
+  .update-structure-btn.update-structure-btn
+):hover:not(:disabled) {
+  box-shadow: 0 14px 30px rgba(52, 76, 241, 0.3);
+}
+
+body :is(.update-structure-btn.update-structure-btn) {
+  background: linear-gradient(135deg, #16b8d8 0%, #22c8a8 100%);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(22, 184, 216, 0.24);
+}
+
+body :is(.update-structure-btn.update-structure-btn):hover:not(:disabled) {
+  box-shadow: 0 14px 30px rgba(22, 184, 216, 0.3);
+}
+
+body :is(.reports-btn.reports-btn, .back-btn.back-btn, .btn-cancel.btn-cancel) {
+  background: #fff;
+  border-color: rgba(207, 224, 245, 0.95);
+  color: var(--text-main);
+}
+
+body :is(.reports-btn.reports-btn, .back-btn.back-btn, .btn-cancel.btn-cancel):hover:not(:disabled) {
+  background: #eef6ff;
+  border-color: rgba(66, 223, 255, 0.32);
+  color: var(--brand-deep);
+}
+
+body :is(.settings-btn.settings-btn, .configure-btn.configure-btn) {
+  background: #fff7e8;
+  border-color: rgba(212, 138, 33, 0.24);
+  color: #9a5d0d;
+}
+
+body :is(.settings-btn.settings-btn, .configure-btn.configure-btn):hover:not(:disabled) {
+  background: #ffefd1;
+  border-color: rgba(212, 138, 33, 0.34);
+}
+
+body :is(.spinner.spinner) {
+  border-top-color: var(--brand-cyan);
+}
+
+body :is(.modal-content.modal-content) {
+  border: 1px solid rgba(66, 223, 255, 0.18);
+  border-radius: 16px;
+}
+
+body :is(.modal-header.modal-header, .modal-footer.modal-footer, .modal-search-section.modal-search-section) {
+  border-color: rgba(207, 224, 245, 0.92);
+}
+
+body :is(.form-input.form-input, .field-input.field-input, .settings-select.settings-select, .schedule-select.schedule-select, .schedule-input.schedule-input, .modal-search-input.modal-search-input) {
+  border-color: rgba(207, 224, 245, 0.95);
+  color: var(--text-main);
 }
 
 @keyframes page-enter {

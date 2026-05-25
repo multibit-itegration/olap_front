@@ -141,7 +141,7 @@ const ONBOARDING_STEPS: readonly OnboardingStep[] = [
     eyebrow: 'Шаг 11',
     title: 'Задайте пароль для входа',
     description:
-      'Если вы зарегистрировались через Telegram или VK, здесь можно задать пароль. С ним и номером телефона можно входить на https://olapsender.ru/.',
+      'Если вы зарегистрировались через Telegram или VK, здесь можно задать пароль. С ним и номером телефона можно входить на https://olapexpress.ru/.',
     actionLabel: 'Завершить',
     targetLabel: '',
     targetClass: 'onboarding-target-clone-password-field'

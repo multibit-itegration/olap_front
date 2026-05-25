@@ -4,19 +4,17 @@
   place-items: center;
   box-sizing: border-box;
   padding: 24px;
-  background:
-    linear-gradient(145deg, rgba(42, 152, 204, 0.96), rgba(22, 135, 217, 0.94)),
-    #2a98cc;
+  background: var(--brand-gradient);
 }
 
 .vk-launch-panel {
   width: min(100%, 960px);
   box-sizing: border-box;
   padding: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 24px 70px rgba(18, 73, 118, 0.26);
+  border: 1px solid rgba(66, 223, 255, 0.34);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: var(--brand-glow);
   color: #fff;
   backdrop-filter: blur(14px);
 }
@@ -43,6 +41,7 @@
   font-size: 32px;
   line-height: 1.15;
   letter-spacing: 0;
+  text-shadow: 0 0 24px rgba(66, 223, 255, 0.36);
 }
 
 .vk-launch-status {
@@ -80,9 +79,9 @@
 .vk-launch-params {
   min-width: 0;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(66, 223, 255, 0.22);
   border-radius: 8px;
-  background: rgba(10, 53, 88, 0.2);
+  background: rgba(12, 39, 69, 0.22);
 }
 
 .vk-launch-block-header {
@@ -107,7 +106,7 @@
   border: 0;
   border-radius: 8px;
   background: #fff;
-  color: #1672b8;
+  color: var(--brand-deep);
   font: inherit;
   font-size: 14px;
   font-weight: 700;
@@ -115,7 +114,7 @@
 }
 
 .vk-launch-block button:hover {
-  background: #f0f6fb;
+  background: #eef6ff;
 }
 
 textarea {
@@ -125,10 +124,10 @@ textarea {
   box-sizing: border-box;
   resize: vertical;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(66, 223, 255, 0.32);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.94);
-  color: #103b5d;
+  color: var(--text-main);
   font: 13px/1.45 monospace;
 }
 

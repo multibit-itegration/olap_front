@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://api.olapsender.ru'
+  apiUrl: 'https://api.olapexpress.ru'
 };
