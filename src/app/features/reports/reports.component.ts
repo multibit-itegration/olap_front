@@ -21,8 +21,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, EMPTY, of } from 'rxjs';
 import { ReportService } from '../../core/api/report.service';
+import { AuthService } from '../../core/api/auth.service';
+import { LicenseService } from '../../core/api/license.service';
 import { OnboardingService } from '../../core/services/onboarding.service';
 import { LayoutUiService } from '../../core/services/layout-ui.service';
+import { License } from '../../core/api/models/license.models';
 import {
   Report,
   ReportType,
@@ -36,6 +39,7 @@ import {
   WEEKDAY_LABELS,
   GlobalSchedule
 } from '../../core/api/models/report.models';
+import { describeCronSchedule, formatScheduleNextRun } from './schedule-format.utils';
 
 interface ReportGroup {
   type: ReportType;
@@ -48,6 +52,12 @@ interface IikoReportGroup {
   label: string;
   reports: IikoReport[];
   expanded: boolean;
+}
+
+interface ScheduleSaveDebugPayload {
+  global_cron: string;
+  timezone: string;
+  data_period_days: number;
 }
 
 const REPORTS_MODAL_NAV_REASON = 'reports-modal';
@@ -70,6 +80,8 @@ const DEFAULT_GLOBAL_SCHEDULE_FORM = {
 })
 export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly reportService = inject(ReportService);
+  private readonly authService = inject(AuthService);
+  private readonly licenseService = inject(LicenseService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -85,6 +97,31 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly userId = signal<number | null>(null);
 
   protected readonly isEmpty = computed(() => this.reports().length === 0);
+  protected readonly scheduleFeatureLicense = signal<License | null>(null);
+  protected readonly scheduleFeatureLicenseLoading = signal<boolean>(true);
+  protected readonly scheduleFeatureLicenseError = signal<boolean>(false);
+  protected readonly hasScheduleFeatureAccess = computed(() => (
+    this.authService.isAdmin() || this.licenseService.hasProAccess(this.scheduleFeatureLicense())
+  ));
+  protected readonly scheduleFeatureDisabled = computed(() => !this.hasScheduleFeatureAccess());
+  protected readonly globalScheduleUnavailableMessage = computed(() => {
+    if (this.authService.isAdmin()) {
+      return '';
+    }
+
+    if (this.scheduleFeatureLicenseLoading()) {
+      return 'Проверяем лицензию...';
+    }
+
+    if (this.scheduleFeatureLicenseError()) {
+      return 'Не удалось проверить лицензию. Общее расписание доступно только с лицензией Pro.';
+    }
+
+    const plan = this.scheduleFeatureLicense()?.plan;
+    return plan
+      ? `Недоступно на лицензии ${plan}. Требуется лицензия Pro.`
+      : 'Общее расписание доступно только с лицензией Pro.';
+  });
 
   // Modal state
   protected readonly showModal = signal<boolean>(false);
@@ -104,6 +141,25 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly scheduleError = signal<string | null>(null);
   protected readonly scheduleSaving = signal<boolean>(false);
   protected readonly existingSchedule = signal<GlobalSchedule | null>(null);
+  protected readonly globalSchedulePreview = signal<GlobalSchedule | null>(null);
+  protected readonly globalSchedulePreviewLoading = signal<boolean>(false);
+  protected readonly globalSchedulePreviewError = signal<string | null>(null);
+  protected readonly globalSchedulePreviewSummary = computed(() => {
+    const schedule = this.globalSchedulePreview();
+    if (!schedule) {
+      return 'Общее расписание ещё не настроено';
+    }
+
+    return describeCronSchedule(schedule.global_cron, schedule.timezone, schedule.data_period_days);
+  });
+  protected readonly globalSchedulePreviewNextRun = computed(() => {
+    const schedule = this.globalSchedulePreview();
+    if (!schedule) {
+      return 'Не запланирована';
+    }
+
+    return formatScheduleNextRun(schedule.next_run_at, schedule.timezone);
+  });
 
   protected readonly scheduleFrequency = signal<ScheduleFrequency>('daily');
   protected readonly scheduleTimezone = signal<string>('Europe/Moscow');
@@ -120,15 +176,11 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('addReportButton')
   private addReportButtons?: QueryList<ElementRef<HTMLButtonElement>>;
 
-  @ViewChildren('scheduleSettingsLink')
-  private scheduleSettingsLinks?: QueryList<ElementRef<HTMLElement>>;
-
   @ViewChildren('configureReportButton')
   private configureReportButtons?: QueryList<ElementRef<HTMLButtonElement>>;
 
   private lastHandledOnboardingActivation = 0;
   private readonly reportSelectionOpenedFromOnboarding = signal<boolean>(false);
-  private readonly scheduleOpenedFromOnboarding = signal<boolean>(false);
 
   private readonly onboardingTargetEffect = effect(() => {
     if (!this.onboarding.active()) {
@@ -139,10 +191,6 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (stepId === 'add_report') {
       this.scheduleAddReportTargetUpdate();
-    }
-
-    if (stepId === 'setup_schedule') {
-      this.scheduleScheduleTargetUpdate();
     }
 
     if (stepId === 'configure_report') {
@@ -168,11 +216,6 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (stepId === 'add_report') {
       this.onAddReport();
-      return;
-    }
-
-    if (stepId === 'setup_schedule') {
-      this.onScheduleSettings();
       return;
     }
 
@@ -238,6 +281,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.onboarding.setPostWelcomeStep('add_report');
+    this.loadScheduleFeatureLicense();
 
     // Subscribe to route params to handle component reuse
     this.route.paramMap.pipe(
@@ -269,14 +313,43 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private loadScheduleFeatureLicense(): void {
+    if (this.authService.isAdmin()) {
+      this.scheduleFeatureLicenseLoading.set(false);
+      this.maybeLoadGlobalSchedulePreview();
+      return;
+    }
+
+    const currentUserId = this.authService.currentUser()?.id;
+    if (!currentUserId) {
+      this.scheduleFeatureLicenseLoading.set(false);
+      this.scheduleFeatureLicenseError.set(true);
+      this.maybeLoadGlobalSchedulePreview();
+      return;
+    }
+
+    this.scheduleFeatureLicenseLoading.set(true);
+    this.scheduleFeatureLicenseError.set(false);
+
+    this.licenseService.getLicenseByUserId(currentUserId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError(() => {
+        this.scheduleFeatureLicense.set(null);
+        this.scheduleFeatureLicenseError.set(true);
+        this.scheduleFeatureLicenseLoading.set(false);
+        return of(null);
+      })
+    ).subscribe(license => {
+      this.scheduleFeatureLicense.set(license);
+      this.scheduleFeatureLicenseLoading.set(false);
+      this.maybeLoadGlobalSchedulePreview();
+    });
+  }
+
   ngAfterViewInit(): void {
     this.addReportButtons?.changes.pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(() => this.scheduleAddReportTargetUpdate());
-
-    this.scheduleSettingsLinks?.changes.pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => this.scheduleScheduleTargetUpdate());
 
     this.configureReportButtons?.changes.pipe(
       takeUntilDestroyed(this.destroyRef)
@@ -284,7 +357,6 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.advanceFromReportsStep();
     this.scheduleAddReportTargetUpdate();
-    this.scheduleScheduleTargetUpdate();
     this.scheduleConfigureReportTargetUpdate();
   }
 
@@ -295,7 +367,6 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   @HostListener('window:resize')
   protected onWindowResize(): void {
     this.scheduleAddReportTargetUpdate();
-    this.scheduleScheduleTargetUpdate();
     this.scheduleConfigureReportTargetUpdate();
   }
 
@@ -316,6 +387,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     ).subscribe(reports => {
       this.reports.set(reports);
       this.loading.set(false);
+      this.maybeLoadGlobalSchedulePreview();
 
       this.advanceFromReportsStep();
 
@@ -323,13 +395,59 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
         this.scheduleAddReportTargetUpdate();
       }
 
-      if (this.onboarding.active() && this.onboarding.step().id === 'setup_schedule') {
-        this.scheduleScheduleTargetUpdate();
-      }
-
       if (this.onboarding.active() && this.onboarding.step().id === 'configure_report') {
         this.scheduleConfigureReportTargetUpdate();
       }
+    });
+  }
+
+  private maybeLoadGlobalSchedulePreview(): void {
+    const hasGlobalReports = this.reports().some(report => report.schedule_type === 'global');
+
+    if (!hasGlobalReports) {
+      this.globalSchedulePreview.set(null);
+      this.globalSchedulePreviewError.set(null);
+      this.globalSchedulePreviewLoading.set(false);
+      return;
+    }
+
+    if (this.scheduleFeatureLicenseLoading()) {
+      return;
+    }
+
+    if (this.scheduleFeatureDisabled()) {
+      this.globalSchedulePreview.set(null);
+      this.globalSchedulePreviewError.set(this.globalScheduleUnavailableMessage());
+      this.globalSchedulePreviewLoading.set(false);
+      return;
+    }
+
+    this.loadGlobalSchedulePreview();
+  }
+
+  private loadGlobalSchedulePreview(): void {
+    this.globalSchedulePreviewLoading.set(true);
+    this.globalSchedulePreviewError.set(null);
+
+    this.reportService.getGlobalSchedule(this.dbId()).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError((err: HttpErrorResponse) => {
+        this.globalSchedulePreview.set(null);
+        this.globalSchedulePreviewLoading.set(false);
+
+        if (err.status === 404) {
+          return of(null);
+        }
+
+        this.globalSchedulePreviewError.set('Не удалось загрузить общее расписание');
+        return of(null);
+      })
+    ).subscribe(schedule => {
+      if (schedule) {
+        this.globalSchedulePreview.set(schedule);
+      }
+
+      this.globalSchedulePreviewLoading.set(false);
     });
   }
 
@@ -390,37 +508,6 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     window.setTimeout(() => this.updateAddReportTargetRect(), 80);
   }
 
-  private updateScheduleTargetRect(): void {
-    if (!this.onboarding.active() || this.onboarding.step().id !== 'setup_schedule') {
-      return;
-    }
-
-    const link = this.getScheduleSettingsLink();
-    if (!link) {
-      this.onboarding.setTargetRect(null);
-      this.onboarding.setSecondaryTargetRect(null);
-      this.onboarding.setGuidePosition(null);
-      return;
-    }
-
-    const padding = 6;
-    const rect = link.getBoundingClientRect();
-    this.onboarding.setTargetRect({
-      top: rect.top - padding,
-      left: rect.left - padding,
-      width: rect.width + padding * 2,
-      height: rect.height + padding * 2
-    });
-    this.onboarding.setSecondaryTargetRect(null);
-    this.setGuidePositionForRect(rect);
-  }
-
-  private scheduleScheduleTargetUpdate(): void {
-    window.setTimeout(() => this.updateScheduleTargetRect());
-    window.requestAnimationFrame(() => this.updateScheduleTargetRect());
-    window.setTimeout(() => this.updateScheduleTargetRect(), 80);
-  }
-
   private updateConfigureReportTargetRect(): void {
     if (!this.onboarding.active() || this.onboarding.step().id !== 'configure_report') {
       return;
@@ -465,11 +552,6 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       ?? this.hostElement.nativeElement.querySelector('[data-onboarding-target="add-report"]') as HTMLButtonElement | null;
   }
 
-  private getScheduleSettingsLink(): HTMLElement | null {
-    return this.scheduleSettingsLinks?.first?.nativeElement
-      ?? this.hostElement.nativeElement.querySelector('[data-onboarding-target="schedule"]') as HTMLElement | null;
-  }
-
   private getConfigureReportButton(): HTMLButtonElement | null {
     return this.configureReportButtons?.first?.nativeElement
       ?? this.hostElement.nativeElement.querySelector('[data-onboarding-target="configure-report"]') as HTMLButtonElement | null;
@@ -495,10 +577,8 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected onScheduleSettings(): void {
-    const openedFromOnboarding = this.onboarding.active() && this.onboarding.step().id === 'setup_schedule';
-    if (openedFromOnboarding) {
-      this.scheduleOpenedFromOnboarding.set(true);
-      this.onboarding.close();
+    if (this.scheduleFeatureDisabled()) {
+      return;
     }
 
     this.showScheduleModal.set(true);
@@ -517,6 +597,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       catchError((err: HttpErrorResponse) => {
         if (err.status === 404) {
           this.existingSchedule.set(null);
+          this.globalSchedulePreview.set(null);
           this.resetGlobalScheduleForm();
           this.scheduleLoading.set(false);
           return of(null);
@@ -535,6 +616,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private applyGlobalScheduleToForm(schedule: GlobalSchedule): void {
     this.existingSchedule.set(schedule);
+    this.globalSchedulePreview.set(schedule);
     this.parseCronToForm(schedule.global_cron);
     const matchedTz = TIMEZONE_CHOICES.find(
       tz => tz.value.toLowerCase() === schedule.timezone.toLowerCase()
@@ -576,18 +658,11 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected closeScheduleModal(): void {
-    const shouldResumeOnboarding = this.scheduleOpenedFromOnboarding();
-    this.scheduleOpenedFromOnboarding.set(false);
-
     this.showScheduleModal.set(false);
     this.layoutUi.setMobileNavHidden(REPORTS_MODAL_NAV_REASON, this.showModal());
     this.scheduleError.set(null);
     this.existingSchedule.set(null);
     this.resetGlobalScheduleForm();
-
-    if (shouldResumeOnboarding) {
-      window.setTimeout(() => this.onboarding.openAtStep('setup_schedule'));
-    }
   }
 
   private resetGlobalScheduleForm(): void {
@@ -661,44 +736,131 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected saveSchedule(): void {
+    if (this.scheduleSaving() || this.scheduleFeatureDisabled()) {
+      return;
+    }
+
     this.scheduleSaving.set(true);
     this.scheduleError.set(null);
 
     const cron = this.buildCronFromForm();
     const existing = this.existingSchedule();
+    const payload: ScheduleSaveDebugPayload = {
+      global_cron: cron,
+      timezone: this.scheduleTimezone(),
+      data_period_days: this.scheduleDataPeriod()
+    };
 
     const request$ = existing
-      ? this.reportService.updateGlobalSchedule(this.dbId(), {
-          global_cron: cron,
-          timezone: this.scheduleTimezone(),
-          data_period_days: this.scheduleDataPeriod()
-        })
-      : this.reportService.createGlobalSchedule(this.dbId(), {
-          global_cron: cron,
-          timezone: this.scheduleTimezone(),
-          data_period_days: this.scheduleDataPeriod()
-        });
+      ? this.reportService.updateGlobalSchedule(this.dbId(), payload)
+      : this.reportService.createGlobalSchedule(this.dbId(), payload);
 
     request$.pipe(
       takeUntilDestroyed(this.destroyRef),
       catchError((err: HttpErrorResponse) => {
-        this.scheduleError.set('Не удалось сохранить расписание');
+        this.logGlobalScheduleSaveError(err, existing ? 'PATCH' : 'POST', payload);
+        this.scheduleError.set(this.getGlobalScheduleSaveErrorMessage(err));
         this.scheduleSaving.set(false);
         return of(null);
       })
     ).subscribe(result => {
       if (result) {
-        const shouldContinueOnboarding = this.scheduleOpenedFromOnboarding();
-        this.scheduleOpenedFromOnboarding.set(false);
-
+        this.globalSchedulePreview.set(result);
+        this.globalSchedulePreviewError.set(null);
         this.scheduleSaving.set(false);
         this.closeScheduleModal();
-
-        if (shouldContinueOnboarding) {
-          window.setTimeout(() => this.onboarding.openAtStep('configure_report'));
-        }
       }
     });
+  }
+
+  private logGlobalScheduleSaveError(
+    err: HttpErrorResponse,
+    method: 'POST' | 'PATCH',
+    payload: ScheduleSaveDebugPayload
+  ): void {
+    console.error('[Reports] Global schedule save failed', {
+      method,
+      endpoint: `/schedules/global/${this.dbId()}`,
+      dbId: this.dbId(),
+      status: err.status,
+      statusText: err.statusText,
+      url: err.url,
+      payload,
+      backendError: err.error
+    });
+  }
+
+  private getGlobalScheduleSaveErrorMessage(err: HttpErrorResponse): string {
+    if (err.status === 403) {
+      return 'Недостаточно прав: общее расписание доступно только с лицензией Pro или администратору';
+    }
+
+    if (err.status === 422) {
+      const detail = this.extractBackendErrorText(err.error);
+      return detail
+        ? `Ошибка валидации расписания: ${detail}`
+        : 'Ошибка валидации расписания';
+    }
+
+    const detail = this.extractBackendErrorText(err.error);
+    if (detail) {
+      return `Не удалось сохранить расписание: ${detail}`;
+    }
+
+    return err.status
+      ? `Не удалось сохранить расписание (код ${err.status})`
+      : 'Не удалось сохранить расписание: нет соединения с сервером';
+  }
+
+  private extractBackendErrorText(errorBody: unknown): string | null {
+    if (typeof errorBody === 'string') {
+      return errorBody;
+    }
+
+    if (!this.isRecord(errorBody)) {
+      return null;
+    }
+
+    const detail = errorBody['detail'];
+    if (typeof detail === 'string') {
+      return detail;
+    }
+
+    if (Array.isArray(detail)) {
+      const messages = detail
+        .map(item => {
+          if (!this.isRecord(item)) {
+            return null;
+          }
+
+          const location = Array.isArray(item['loc'])
+            ? item['loc'].map(part => String(part)).join('.')
+            : null;
+          const message = typeof item['msg'] === 'string' ? item['msg'] : null;
+
+          if (location && message) {
+            return `${location}: ${message}`;
+          }
+
+          return message;
+        })
+        .filter((message): message is string => Boolean(message));
+
+      return messages.length ? messages.join('; ') : null;
+    }
+
+    for (const key of ['message', 'msg', 'error']) {
+      const value = errorBody[key];
+      if (typeof value === 'string') {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
   }
 
   protected onConfigureReport(report: Report): Promise<boolean> {
@@ -819,7 +981,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loadReports();
 
       if (shouldContinueOnboarding) {
-        window.setTimeout(() => this.onboarding.openAtStep('setup_schedule'));
+        window.setTimeout(() => this.onboarding.openAtStep('configure_report'));
       }
     });
   }

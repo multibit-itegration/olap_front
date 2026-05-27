@@ -1,16 +1,46 @@
 import { TestBed } from '@angular/core/testing';
 import { ReportsComponent } from './reports.component';
 import { ReportService } from '../../core/api/report.service';
+import { AuthService } from '../../core/api/auth.service';
+import { LicenseService } from '../../core/api/license.service';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
+import { signal } from '@angular/core';
 import { Report, GlobalSchedule } from '../../core/api/models/report.models';
+import { User } from '../../core/api/models/user.models';
+import { License } from '../../core/api/models/license.models';
 
 describe('ReportsComponent', () => {
   let component: ReportsComponent;
   let reportServiceSpy: jasmine.SpyObj<ReportService>;
+  let licenseServiceSpy: jasmine.SpyObj<LicenseService>;
   let routerSpy: jasmine.SpyObj<Router>;
+
+  const mockUser: User = {
+    id: 5,
+    name: 'Test User',
+    phone: '+79001234567',
+    email: 'test@example.com',
+    telegram_id: 123456789,
+    role: 'user'
+  };
+
+  const mockProLicense: License = {
+    id: 1,
+    user_id: 5,
+    rms_id: null,
+    contract_num: null,
+    expiration_date: '2026-12-31',
+    comment: null,
+    plan: 'Pro'
+  };
+
+  const mockFreeLicense: License = {
+    ...mockProLicense,
+    plan: 'Free'
+  };
 
   const mockReports: Report[] = [
     {
@@ -76,6 +106,14 @@ describe('ReportsComponent', () => {
       'createGlobalSchedule',
       'updateGlobalSchedule'
     ]);
+    const authSpy = jasmine.createSpyObj('AuthService', ['loadCurrentUser'], {
+      currentUser: signal(mockUser),
+      isAdmin: signal(false)
+    });
+    const licenseSpy = jasmine.createSpyObj('LicenseService', ['getLicenseByUserId', 'hasProAccess']);
+    licenseSpy.getLicenseByUserId.and.returnValue(of(mockProLicense));
+    licenseSpy.hasProAccess.and.callFake((license: License | null) => license?.plan === 'Pro');
+    reportSpy.getGlobalSchedule.and.returnValue(of(mockGlobalSchedule));
     const routerSpyObj = jasmine.createSpyObj('Router', ['navigate']);
 
     TestBed.configureTestingModule({
@@ -83,6 +121,8 @@ describe('ReportsComponent', () => {
       providers: [
         provideRouter([]),
         { provide: ReportService, useValue: reportSpy },
+        { provide: AuthService, useValue: authSpy },
+        { provide: LicenseService, useValue: licenseSpy },
         { provide: Router, useValue: routerSpyObj },
         {
           provide: ActivatedRoute,
@@ -95,6 +135,7 @@ describe('ReportsComponent', () => {
     });
 
     reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;
+    licenseServiceSpy = TestBed.inject(LicenseService) as jasmine.SpyObj<LicenseService>;
     routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
   }
 
@@ -198,6 +239,23 @@ describe('ReportsComponent', () => {
       reportServiceSpy.getReportsByConnectionId.and.returnValue(of(mockReports));
     });
 
+    it('should show global schedule details on global report cards', (done) => {
+      const fixture = TestBed.createComponent(ReportsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        fixture.detectChanges();
+        const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+        expect(reportServiceSpy.getGlobalSchedule).toHaveBeenCalledWith(10);
+        expect(text).toContain('Следующая отправка:');
+        expect(text).toContain('Ежедневно в 13:00');
+        expect(text).toContain('Изменить расписание');
+        done();
+      });
+    });
+
     it('should open schedule modal and load global schedule', (done) => {
       reportServiceSpy.getGlobalSchedule.and.returnValue(of(mockGlobalSchedule));
 
@@ -214,6 +272,26 @@ describe('ReportsComponent', () => {
           expect(component['existingSchedule']()).toEqual(mockGlobalSchedule);
           done();
         });
+      });
+    });
+
+    it('should keep global schedule disabled for free users', (done) => {
+      licenseServiceSpy.getLicenseByUserId.and.returnValue(of(mockFreeLicense));
+
+      const fixture = TestBed.createComponent(ReportsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['scheduleFeatureDisabled']()).toBeTrue();
+        component['onScheduleSettings']();
+
+        expect(component['showScheduleModal']()).toBeFalse();
+        expect(reportServiceSpy.getGlobalSchedule).not.toHaveBeenCalled();
+        expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+          'Недоступно на лицензии Free. Требуется лицензия Pro.'
+        );
+        done();
       });
     });
 
@@ -464,6 +542,7 @@ describe('ReportsComponent', () => {
     beforeEach(() => {
       configureTestingModule({ dbId: '10' });
       reportServiceSpy.getReportsByConnectionId.and.returnValue(of(mockReports));
+      spyOn(console, 'error');
     });
 
     it('should create new global schedule when none exists', (done) => {
@@ -545,8 +624,78 @@ describe('ReportsComponent', () => {
           component['saveSchedule']();
 
           setTimeout(() => {
-            expect(component['scheduleError']()).toBe('Не удалось сохранить расписание');
+            expect(component['scheduleError']()).toBe('Не удалось сохранить расписание (код 500)');
             expect(component['scheduleSaving']()).toBe(false);
+            done();
+          });
+        });
+      });
+    });
+
+    it('should show license access reason when backend returns 403', (done) => {
+      const error = new HttpErrorResponse({ status: 403, statusText: 'Forbidden' });
+      reportServiceSpy.getGlobalSchedule.and.returnValue(throwError(() => ({ status: 404 })));
+      reportServiceSpy.createGlobalSchedule.and.returnValue(throwError(() => error));
+
+      const fixture = TestBed.createComponent(ReportsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        component['onScheduleSettings']();
+
+        setTimeout(() => {
+          component['saveSchedule']();
+
+          setTimeout(() => {
+            expect(component['scheduleError']()).toBe(
+              'Недостаточно прав: общее расписание доступно только с лицензией Pro или администратору'
+            );
+            expect(console.error).toHaveBeenCalledWith(
+              '[Reports] Global schedule save failed',
+              jasmine.objectContaining({
+                method: 'POST',
+                endpoint: '/schedules/global/10',
+                status: 403
+              })
+            );
+            done();
+          });
+        });
+      });
+    });
+
+    it('should show validation details when backend returns 422', (done) => {
+      const error = new HttpErrorResponse({
+        status: 422,
+        statusText: 'Unprocessable Entity',
+        error: {
+          detail: [
+            {
+              loc: ['body', 'global_cron'],
+              msg: 'Invalid cron expression',
+              type: 'value_error'
+            }
+          ]
+        }
+      });
+      reportServiceSpy.getGlobalSchedule.and.returnValue(throwError(() => ({ status: 404 })));
+      reportServiceSpy.createGlobalSchedule.and.returnValue(throwError(() => error));
+
+      const fixture = TestBed.createComponent(ReportsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        component['onScheduleSettings']();
+
+        setTimeout(() => {
+          component['saveSchedule']();
+
+          setTimeout(() => {
+            expect(component['scheduleError']()).toBe(
+              'Ошибка валидации расписания: body.global_cron: Invalid cron expression'
+            );
             done();
           });
         });
@@ -673,6 +822,36 @@ describe('ReportsComponent', () => {
         expect(component['error']()).toBe('Не удалось загрузить отчёты');
         expect(component['loading']()).toBe(false);
         done();
+      });
+    });
+  });
+
+  describe('submitSelectedReports', () => {
+    beforeEach(() => {
+      configureTestingModule({ dbId: '10' });
+      reportServiceSpy.getReportsByConnectionId.and.returnValue(of(mockReports));
+      reportServiceSpy.createReports.and.returnValue(of(undefined));
+    });
+
+    it('should continue onboarding directly to report settings after creating reports', (done) => {
+      const fixture = TestBed.createComponent(ReportsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      spyOn(component['onboarding'], 'openAtStep');
+
+      setTimeout(() => {
+        component['selectedReportIds'].set(new Set(['report-123']));
+        component['reportSelectionOpenedFromOnboarding'].set(true);
+        component['submitSelectedReports']();
+
+        setTimeout(() => {
+          expect(reportServiceSpy.createReports).toHaveBeenCalledWith(10, {
+            iiko_reports_ids: ['report-123'],
+            format: 'pdf'
+          });
+          expect(component['onboarding'].openAtStep).toHaveBeenCalledWith('configure_report');
+          done();
+        });
       });
     });
   });

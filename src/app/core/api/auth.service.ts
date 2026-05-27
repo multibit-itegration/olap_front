@@ -110,13 +110,13 @@ export class AuthService {
       const parsed: StoredToken = JSON.parse(storedData);
 
       if (Date.now() > parsed.expiresAt) {
-        this.clearSessionToken();
+        localStorage.removeItem(this.SESSION_TOKEN_KEY);
         return null;
       }
 
       return parsed.token;
     } catch {
-      this.clearSessionToken();
+      localStorage.removeItem(this.SESSION_TOKEN_KEY);
       return null;
     }
   }

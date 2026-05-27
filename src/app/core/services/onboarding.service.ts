@@ -6,7 +6,6 @@ export type OnboardingStepId =
   | 'database_form'
   | 'go_to_reports'
   | 'add_report'
-  | 'setup_schedule'
   | 'configure_report'
   | 'report_settings_overview'
   | 'update_report_structure'
@@ -81,17 +80,8 @@ const ONBOARDING_STEPS: readonly OnboardingStep[] = [
     targetClass: 'onboarding-target-clone-add-report'
   },
   {
-    id: 'setup_schedule',
-    eyebrow: 'Шаг 5',
-    title: 'Настройте общее расписание',
-    description: 'Настройте расписание рассылки отчётов для этой базы.',
-    actionLabel: 'Настроить',
-    targetLabel: 'Настроить общее расписание отчётов',
-    targetClass: 'onboarding-target-clone-schedule'
-  },
-  {
     id: 'configure_report',
-    eyebrow: 'Шаг 6',
+    eyebrow: 'Шаг 5',
     title: 'Перейдите в настройки отчёта',
     description: 'Откройте настройки отчёта, чтобы проверить формат, канал и параметры рассылки.',
     actionLabel: 'Настроить',
@@ -100,7 +90,7 @@ const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   },
   {
     id: 'report_settings_overview',
-    eyebrow: 'Шаг 7',
+    eyebrow: 'Шаг 6',
     title: 'Проверьте основные настройки',
     description:
       'Формат — нужный файл отчёта. Рассылка — куда его получать. Тип рассылки — отключить отправку, использовать расписание базы или задать индивидуальное.',
@@ -110,7 +100,7 @@ const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   },
   {
     id: 'update_report_structure',
-    eyebrow: 'Шаг 8',
+    eyebrow: 'Шаг 7',
     title: 'Обновите структуру отчёта',
     description:
       'Если структура отчёта изменилась в iiko, её можно экстренно обновить в приложении. Без ручного обновления она подтянется автоматически через 15-20 минут.',
@@ -120,7 +110,7 @@ const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   },
   {
     id: 'go_to_profile',
-    eyebrow: 'Шаг 9',
+    eyebrow: 'Шаг 8',
     title: 'Перейдите в профиль',
     description: 'Откройте профиль клиента, чтобы посмотреть личные настройки и дополнительные возможности.',
     actionLabel: 'Профиль',
@@ -129,7 +119,7 @@ const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   },
   {
     id: 'restart_onboarding',
-    eyebrow: 'Шаг 10',
+    eyebrow: 'Шаг 9',
     title: 'Обучение можно пройти повторно',
     description: 'Эта кнопка запускает обучение заново, если нужно вернуться к подсказкам позже.',
     actionLabel: 'Далее',
@@ -138,7 +128,7 @@ const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   },
   {
     id: 'set_password',
-    eyebrow: 'Шаг 11',
+    eyebrow: 'Шаг 10',
     title: 'Задайте пароль для входа',
     description:
       'Если вы зарегистрировались через Telegram или VK, здесь можно задать пароль. С ним и номером телефона можно входить на https://olapexpress.ru/.',

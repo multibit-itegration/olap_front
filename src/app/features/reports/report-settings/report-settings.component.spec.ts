@@ -4,19 +4,22 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ReportSettingsComponent } from './report-settings.component';
 import { ReportService } from '../../../core/api/report.service';
 import { AuthService } from '../../../core/api/auth.service';
+import { LicenseService } from '../../../core/api/license.service';
 import { LinkedChatsService } from '../../../core/api/linked-chats.service';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Report, IndividualSchedule } from '../../../core/api/models/report.models';
+import { Report, IndividualSchedule, GlobalSchedule } from '../../../core/api/models/report.models';
 import { User } from '../../../core/api/models/user.models';
+import { License } from '../../../core/api/models/license.models';
 
 describe('ReportSettingsComponent', () => {
   let component: ReportSettingsComponent;
   let reportServiceSpy: jasmine.SpyObj<ReportService>;
   let authServiceSpy: jasmine.SpyObj<AuthService>;
+  let licenseServiceSpy: jasmine.SpyObj<LicenseService>;
   let linkedChatsServiceSpy: jasmine.SpyObj<LinkedChatsService>;
   let routerSpy: jasmine.SpyObj<Router>;
   let fixture: any;
@@ -28,6 +31,21 @@ describe('ReportSettingsComponent', () => {
     email: 'test@example.com',
     telegram_id: 123456789,
     role: 'user'
+  };
+
+  const mockProLicense: License = {
+    id: 1,
+    user_id: 5,
+    rms_id: null,
+    contract_num: null,
+    expiration_date: '2026-12-31',
+    comment: null,
+    plan: 'Pro'
+  };
+
+  const mockFreeLicense: License = {
+    ...mockProLicense,
+    plan: 'Free'
   };
 
   afterEach((done) => {
@@ -65,12 +83,25 @@ describe('ReportSettingsComponent', () => {
     next_run_at: '2026-03-24T14:30:00Z'
   };
 
+  const mockGlobalSchedule: GlobalSchedule = {
+    id: 1,
+    user_id: 5,
+    iiko_connection_id: 10,
+    global_cron: '0 13 * * *',
+    timezone: 'Europe/Moscow',
+    data_period_days: 7,
+    next_run_at: '2026-03-20T13:00:00Z'
+  };
+
   function configureTestingModule(routeParams: { [key: string]: string }, url: string = '/user/databases/10/reports/1') {
     const reportSpy = jasmine.createSpyObj('ReportService', [
       'getReport',
       'updateReport',
       'updateReportStructure',
       'deleteReport',
+      'getGlobalSchedule',
+      'createGlobalSchedule',
+      'updateGlobalSchedule',
       'getIndividualSchedule',
       'createIndividualSchedule',
       'updateIndividualSchedule',
@@ -79,8 +110,13 @@ describe('ReportSettingsComponent', () => {
       'updateGroupSchedule'
     ]);
     const authSpy = jasmine.createSpyObj('AuthService', ['loadCurrentUser'], {
-      currentUser: signal(mockUser)
+      currentUser: signal(mockUser),
+      isAdmin: signal(false)
     });
+    const licenseSpy = jasmine.createSpyObj('LicenseService', ['getLicenseByUserId', 'hasProAccess']);
+    licenseSpy.getLicenseByUserId.and.returnValue(of(mockProLicense));
+    licenseSpy.hasProAccess.and.callFake((license: License | null) => license?.plan === 'Pro');
+    reportSpy.getGlobalSchedule.and.returnValue(of(mockGlobalSchedule));
     const linkedChatsSpy = jasmine.createSpyObj('LinkedChatsService', ['getLinkedChats', 'updateLinkedChat']);
     const routerSpyObj = jasmine.createSpyObj('Router', ['navigate'], { url });
 
@@ -92,6 +128,7 @@ describe('ReportSettingsComponent', () => {
         provideRouter([]),
         { provide: ReportService, useValue: reportSpy },
         { provide: AuthService, useValue: authSpy },
+        { provide: LicenseService, useValue: licenseSpy },
         { provide: LinkedChatsService, useValue: linkedChatsSpy },
         { provide: Router, useValue: routerSpyObj },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap(routeParams) }, parent: null } }
@@ -100,6 +137,7 @@ describe('ReportSettingsComponent', () => {
 
     reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;
     authServiceSpy = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
+    licenseServiceSpy = TestBed.inject(LicenseService) as jasmine.SpyObj<LicenseService>;
     linkedChatsServiceSpy = TestBed.inject(LinkedChatsService) as jasmine.SpyObj<LinkedChatsService>;
     routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
   }
@@ -282,6 +320,32 @@ describe('ReportSettingsComponent', () => {
       });
     });
 
+    it('should show global schedule details when global schedule type is selected', (done) => {
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      reportServiceSpy.getReport.and.returnValue(of(mockReport));
+      reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        const event = { target: { value: 'global' } } as any;
+        component['onScheduleTypeChange'](event);
+
+        setTimeout(() => {
+          fixture.detectChanges();
+          const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+          expect(reportServiceSpy.getGlobalSchedule).toHaveBeenCalledWith(10);
+          expect(text).toContain('Следующая отправка');
+          expect(text).toContain('Ежедневно в 13:00');
+          expect(text).toContain('Изменить расписание');
+          done();
+        });
+      });
+    });
+
     it('should handle null schedule type', (done) => {
       configureTestingModule({ reportId: '1', dbId: '10' });
       reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;
@@ -297,6 +361,35 @@ describe('ReportSettingsComponent', () => {
         const event = { target: { value: 'null' } } as any;
         component['onScheduleTypeChange'](event);
         expect(component['selectedScheduleType']()).toBeNull();
+        done();
+      });
+    });
+
+    it('should keep schedule type disabled for free users', (done) => {
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      licenseServiceSpy.getLicenseByUserId.and.returnValue(of(mockFreeLicense));
+      reportServiceSpy.getReport.and.returnValue(of(mockReport));
+      reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        const event = { target: { value: 'global' } } as any;
+        component['onScheduleTypeChange'](event);
+        fixture.detectChanges();
+
+        const scheduleSelect = (fixture.nativeElement as HTMLElement).querySelector(
+          '.settings-row-disabled select.settings-select'
+        ) as HTMLSelectElement;
+
+        expect(component['scheduleFeatureDisabled']()).toBeTrue();
+        expect(component['selectedScheduleType']()).toBe('individual');
+        expect(scheduleSelect.disabled).toBeTrue();
+        expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+          'Недоступно на лицензии Free. Требуется лицензия Pro.'
+        );
         done();
       });
     });
@@ -398,6 +491,60 @@ describe('ReportSettingsComponent', () => {
         done();
       });
     });
+
+    it('should ignore schedule-only changes for free users', (done) => {
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      licenseServiceSpy.getLicenseByUserId.and.returnValue(of(mockFreeLicense));
+      reportServiceSpy.getReport.and.returnValue(of(mockReport));
+      reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        component['selectedScheduleType'].set('global');
+        expect(component['scheduleFeatureDisabled']()).toBeTrue();
+        expect(component['hasUnsavedChanges']()).toBe(false);
+        done();
+      });
+    });
+
+    it('should update global schedule from report settings', (done) => {
+      const reportWithGlobal: Report = { ...mockReport, schedule_type: 'global' };
+      const updatedSchedule: GlobalSchedule = {
+        ...mockGlobalSchedule,
+        global_cron: '30 15 * * *',
+        next_run_at: '2026-03-20T15:30:00Z'
+      };
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      reportServiceSpy.getReport.and.returnValue(of(reportWithGlobal));
+      reportServiceSpy.updateGlobalSchedule.and.returnValue(of(updatedSchedule));
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        component['openGlobalScheduleSettings']();
+
+        setTimeout(() => {
+          component['onGlobalTimeValueChange']('15:30');
+          component['saveGlobalSchedule']();
+
+          setTimeout(() => {
+            expect(reportServiceSpy.updateGlobalSchedule).toHaveBeenCalledWith(10, {
+              global_cron: '30 15 * * *',
+              timezone: 'Europe/Moscow',
+              data_period_days: 7
+            });
+            expect(component['globalSchedule']()).toEqual(updatedSchedule);
+            expect(component['showGlobalScheduleModal']()).toBeFalse();
+            done();
+          });
+        });
+      });
+    });
   });
 
   describe('saveSettings', () => {
@@ -489,6 +636,33 @@ describe('ReportSettingsComponent', () => {
         setTimeout(() => {
           expect(component['error']()).toBe('Не удалось сохранить настройки');
           expect(component['saving']()).toBe(false);
+          done();
+        });
+      });
+    });
+
+    it('should keep original schedule type when saving other changes for free users', (done) => {
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      licenseServiceSpy.getLicenseByUserId.and.returnValue(of(mockFreeLicense));
+      reportServiceSpy.getReport.and.returnValue(of(mockReport));
+      reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
+      reportServiceSpy.updateReport.and.returnValue(of({ ...mockReport, format: 'pdf' }));
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        component['selectedFormat'].set('pdf');
+        component['selectedScheduleType'].set('global');
+        component['saveSettings']();
+
+        setTimeout(() => {
+          expect(reportServiceSpy.updateReport).toHaveBeenCalledWith(1, {
+            format: 'pdf',
+            delivery_type: 'telegram',
+            schedule_type: 'individual'
+          });
           done();
         });
       });

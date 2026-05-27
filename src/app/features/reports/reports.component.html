@@ -6,14 +6,24 @@
       </svg>
     </button>
     <h1 class="page-title">ОТЧЁТЫ</h1>
-    <a
-      #scheduleSettingsLink
-      class="schedule-link"
-      data-onboarding-target="schedule"
-      (click)="onScheduleSettings()"
-    >
-      Настроить общее расписание отчётов
-    </a>
+    <div class="schedule-link-block">
+      <button
+        class="schedule-link"
+        type="button"
+        data-onboarding-target="schedule"
+        [disabled]="scheduleFeatureDisabled()"
+        [attr.title]="scheduleFeatureDisabled() ? globalScheduleUnavailableMessage() : null"
+        (click)="onScheduleSettings()"
+      >
+        Общее расписание отчётов
+      </button>
+
+      @if (scheduleFeatureDisabled()) {
+        <span class="pro-feature-hint">
+          {{ globalScheduleUnavailableMessage() }}
+        </span>
+      }
+    </div>
   </div>
 
   <div class="toolbar">
@@ -56,13 +66,42 @@
           <div class="group-reports">
             @for (report of group.reports; track trackByReportId($index, report)) {
               <div class="report-card">
-                <div class="report-info">
-                  <span class="report-name">{{ report.name }}</span>
-                  <span class="status-badge" [ngClass]="getScheduleStatusClass(report.schedule_type)">
-                    {{ getScheduleStatusText(report.schedule_type) }}
-                  </span>
+                <div class="report-details">
+                  <div class="report-info">
+                    <span class="report-name">{{ report.name }}</span>
+                    <span class="status-badge" [ngClass]="getScheduleStatusClass(report.schedule_type)">
+                      {{ getScheduleStatusText(report.schedule_type) }}
+                    </span>
+                  </div>
+
+                  @if (report.schedule_type === 'global') {
+                    <div class="report-global-schedule">
+                      @if (globalSchedulePreviewLoading()) {
+                        <span>Загружаем общее расписание...</span>
+                      } @else if (globalSchedulePreviewError()) {
+                        <span>{{ globalSchedulePreviewError() }}</span>
+                      } @else {
+                        <span>
+                          Следующая отправка: <strong>{{ globalSchedulePreviewNextRun() }}</strong>
+                        </span>
+                        <span class="report-global-summary">{{ globalSchedulePreviewSummary() }}</span>
+                      }
+                    </div>
+                  }
                 </div>
                 <div class="report-actions">
+                  @if (report.schedule_type === 'global') {
+                    <button
+                      class="action-btn schedule-card-btn"
+                      type="button"
+                      [disabled]="scheduleFeatureDisabled()"
+                      [attr.title]="scheduleFeatureDisabled() ? globalScheduleUnavailableMessage() : null"
+                      (click)="onScheduleSettings()"
+                    >
+                      Изменить расписание
+                    </button>
+                  }
+
                   <button
                     #configureReportButton
                     class="action-btn configure-btn"

@@ -90,25 +90,84 @@
             </div>
           </div>
 
-          <div class="settings-row">
+          <div class="settings-row" [class.settings-row-disabled]="scheduleFeatureDisabled()">
             <span class="settings-label">Тип рассылки</span>
-            <select
-              class="settings-select"
-              [value]="selectedScheduleType() || 'null'"
-              (change)="onScheduleTypeChange($event)"
-              [disabled]="saving()"
-            >
-              <option value="global">Общее расписание</option>
-              <option value="individual">Индивидуальное расписание</option>
-              <option value="null">Отключить</option>
-            </select>
+            <div class="settings-control">
+              <select
+                class="settings-select"
+                [value]="selectedScheduleType() || 'null'"
+                (change)="onScheduleTypeChange($event)"
+                [disabled]="saving() || scheduleFeatureDisabled()"
+                [attr.title]="scheduleFeatureDisabled() ? scheduleFeatureUnavailableMessage() : null"
+              >
+                <option value="global">Общее расписание</option>
+                <option value="individual">Индивидуальное расписание</option>
+                <option value="null">Отключить</option>
+              </select>
+
+              @if (scheduleFeatureDisabled()) {
+                <span class="pro-feature-hint">
+                  {{ scheduleFeatureUnavailableMessage() }}
+                </span>
+              }
+            </div>
           </div>
         </div>
       </div>
 
+      @if (showGlobalSchedule()) {
+        <div class="global-schedule-block">
+          <div class="global-schedule-header">
+            <div>
+              <h3 class="block-title">Общее расписание</h3>
+              <p class="global-schedule-description">
+                {{ report()!.schedule_type === 'global' ? 'Этот отчёт отправляется по общему расписанию базы.' : 'После сохранения отчёт будет отправляться по общему расписанию базы.' }}
+              </p>
+            </div>
+            <button
+              class="edit-global-schedule-btn"
+              type="button"
+              (click)="openGlobalScheduleSettings()"
+              [disabled]="globalScheduleLoading() || scheduleFeatureDisabled()"
+              [attr.title]="scheduleFeatureDisabled() ? scheduleFeatureUnavailableMessage() : null"
+            >
+              {{ globalSchedule() ? 'Изменить расписание' : 'Настроить расписание' }}
+            </button>
+          </div>
+
+          @if (scheduleFeatureDisabled()) {
+            <div class="pro-feature-notice">
+              {{ scheduleFeatureUnavailableMessage() }}
+            </div>
+          }
+
+          @if (globalScheduleLoading()) {
+            <div class="schedule-loading">
+              <div class="spinner"></div>
+              <p>Загрузка общего расписания...</p>
+            </div>
+          } @else if (globalScheduleError()) {
+            <div class="schedule-error">
+              <p>{{ globalScheduleError() }}</p>
+            </div>
+          } @else {
+            <div class="global-schedule-summary-card">
+              <span class="global-schedule-label">Следующая отправка</span>
+              <strong>{{ globalScheduleNextRun() }}</strong>
+              <span>{{ globalScheduleSummary() }}</span>
+            </div>
+          }
+        </div>
+      }
+
       @if (showIndividualSchedule()) {
         <div class="individual-schedule-block">
           <h3 class="block-title">Настройка индивидуального расписания</h3>
+          @if (scheduleFeatureDisabled()) {
+            <div class="pro-feature-notice">
+              {{ scheduleFeatureUnavailableMessage() }}
+            </div>
+          }
 
           @if (individualScheduleLoading()) {
             <div class="schedule-loading">
@@ -129,7 +188,7 @@
                   class="field-input"
                   [ngModel]="individualFrequency()"
                   (ngModelChange)="onIndividualFrequencyValueChange($event)"
-                  [disabled]="individualScheduleSaving()"
+                  [disabled]="individualScheduleSaving() || scheduleFeatureDisabled()"
                 >
                   @for (option of frequencyOptions; track option.value) {
                     <option [ngValue]="option.value">{{ option.label }}</option>
@@ -144,7 +203,7 @@
                   class="field-input time-input"
                   [ngModel]="individualTime()"
                   (ngModelChange)="onIndividualTimeValueChange($event)"
-                  [disabled]="individualScheduleSaving()"
+                  [disabled]="individualScheduleSaving() || scheduleFeatureDisabled()"
                 />
               </div>
 
@@ -155,7 +214,7 @@
                     class="field-input"
                     [ngModel]="individualWeekday()"
                     (ngModelChange)="onIndividualWeekdayValueChange($event)"
-                    [disabled]="individualScheduleSaving()"
+                    [disabled]="individualScheduleSaving() || scheduleFeatureDisabled()"
                   >
                     @for (option of weekdayOptions; track option.value) {
                       <option [ngValue]="option.value">{{ option.label }}</option>
@@ -174,14 +233,14 @@
                     (ngModelChange)="onIndividualDayOfMonthValueChange($event)"
                     min="1"
                     max="31"
-                    [disabled]="individualScheduleSaving()"
+                    [disabled]="individualScheduleSaving() || scheduleFeatureDisabled()"
                   />
                 </div>
               }
 
               <div class="schedule-field-item">
                 <label class="field-label">Данные за период</label>
-                <div class="field-input-with-suffix" [class.disabled]="individualScheduleSaving()">
+                <div class="field-input-with-suffix" [class.disabled]="individualScheduleSaving() || scheduleFeatureDisabled()">
                   <input
                     type="number"
                     class="field-input field-input-suffix-control"
@@ -189,7 +248,7 @@
                     (ngModelChange)="onIndividualDataPeriodValueChange($event)"
                     min="1"
                     max="365"
-                    [disabled]="individualScheduleSaving()"
+                    [disabled]="individualScheduleSaving() || scheduleFeatureDisabled()"
                   />
                   <span class="field-input-suffix" aria-hidden="true">дней</span>
                 </div>
@@ -201,7 +260,7 @@
                   class="field-input"
                   [ngModel]="individualTimezone()"
                   (ngModelChange)="onIndividualTimezoneValueChange($event)"
-                  [disabled]="individualScheduleSaving()"
+                  [disabled]="individualScheduleSaving() || scheduleFeatureDisabled()"
                 >
                   @for (tz of timezoneOptions; track tz.value) {
                     <option [ngValue]="tz.value">{{ tz.label }}</option>
@@ -213,7 +272,7 @@
             <button
               class="save-schedule-btn"
               (click)="saveSchedule()"
-              [disabled]="individualScheduleSaving()"
+              [disabled]="individualScheduleSaving() || scheduleFeatureDisabled()"
             >
               {{ individualScheduleSaving() ? 'Сохранение...' : 'Сохранить расписание' }}
             </button>
@@ -399,6 +458,136 @@
         >
           {{ featureRequested() ? '✅ Спасибо! Мы учтём ваш запрос.' : 'Хочу такую функцию' }}
         </button>
+      </div>
+    </div>
+  }
+
+  @if (showGlobalScheduleModal()) {
+    <div class="modal-overlay" (click)="closeGlobalScheduleModal()" role="dialog" aria-modal="true" aria-labelledby="global-schedule-modal-title">
+      <div class="modal-content schedule-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2 class="modal-title" id="global-schedule-modal-title">Настройка общего расписания</h2>
+          <button class="modal-close" (click)="closeGlobalScheduleModal()" title="Закрыть">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          @if (globalScheduleLoading()) {
+            <div class="schedule-loading">
+              <div class="spinner"></div>
+              <p>Загрузка расписания...</p>
+            </div>
+          } @else {
+            @if (globalScheduleError()) {
+              <div class="schedule-error">
+                <p>{{ globalScheduleError() }}</p>
+              </div>
+            }
+
+            <div class="schedule-fields-grid">
+              <div class="schedule-field-item">
+                <label class="field-label">Тип рассылки</label>
+                <select
+                  class="field-input"
+                  [ngModel]="globalFrequency()"
+                  (ngModelChange)="onGlobalFrequencyValueChange($event)"
+                  [disabled]="globalScheduleSaving()"
+                >
+                  @for (option of frequencyOptions; track option.value) {
+                    <option [ngValue]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="schedule-field-item">
+                <label class="field-label">Время</label>
+                <input
+                  type="time"
+                  class="field-input time-input"
+                  [ngModel]="globalTime()"
+                  (ngModelChange)="onGlobalTimeValueChange($event)"
+                  [disabled]="globalScheduleSaving()"
+                />
+              </div>
+
+              @if (globalFrequency() === 'weekly') {
+                <div class="schedule-field-item">
+                  <label class="field-label">День недели</label>
+                  <select
+                    class="field-input"
+                    [ngModel]="globalWeekday()"
+                    (ngModelChange)="onGlobalWeekdayValueChange($event)"
+                    [disabled]="globalScheduleSaving()"
+                  >
+                    @for (option of weekdayOptions; track option.value) {
+                      <option [ngValue]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                </div>
+              }
+
+              @if (globalFrequency() === 'monthly') {
+                <div class="schedule-field-item">
+                  <label class="field-label">День месяца</label>
+                  <input
+                    type="number"
+                    class="field-input"
+                    [ngModel]="globalDayOfMonth()"
+                    (ngModelChange)="onGlobalDayOfMonthValueChange($event)"
+                    min="1"
+                    max="31"
+                    [disabled]="globalScheduleSaving()"
+                  />
+                </div>
+              }
+
+              <div class="schedule-field-item">
+                <label class="field-label">Данные за период</label>
+                <div class="field-input-with-suffix" [class.disabled]="globalScheduleSaving()">
+                  <input
+                    type="number"
+                    class="field-input field-input-suffix-control"
+                    [ngModel]="globalDataPeriod()"
+                    (ngModelChange)="onGlobalDataPeriodValueChange($event)"
+                    min="1"
+                    max="365"
+                    [disabled]="globalScheduleSaving()"
+                  />
+                  <span class="field-input-suffix" aria-hidden="true">дней</span>
+                </div>
+              </div>
+
+              <div class="schedule-field-item">
+                <label class="field-label">Часовой пояс</label>
+                <select
+                  class="field-input"
+                  [ngModel]="globalTimezone()"
+                  (ngModelChange)="onGlobalTimezoneValueChange($event)"
+                  [disabled]="globalScheduleSaving()"
+                >
+                  @for (tz of timezoneOptions; track tz.value) {
+                    <option [ngValue]="tz.value">{{ tz.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (!globalScheduleLoading()) {
+          <div class="modal-footer">
+            <button
+              class="save-schedule-btn"
+              (click)="saveGlobalSchedule()"
+              [disabled]="globalScheduleSaving()"
+            >
+              {{ globalScheduleSaving() ? 'Сохранение...' : 'Сохранить расписание' }}
+            </button>
+          </div>
+        }
       </div>
     </div>
   }
