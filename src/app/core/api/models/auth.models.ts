@@ -15,6 +15,10 @@ export interface TelegramAuthRequest {
   init_data: string;
 }
 
+export interface VkAuthRequest {
+  launch_params: string;
+}
+
 // Response Models
 export interface LoginResponse {
   session_token: string;
@@ -25,6 +29,10 @@ export interface RegisterResponse {
 }
 
 export interface TelegramAuthResponse {
+  session_token: string;
+}
+
+export interface VkAuthResponse {
   session_token: string;
 }
 

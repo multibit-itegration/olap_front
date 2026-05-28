@@ -154,7 +154,7 @@ export class TelegramService {
   }
 
   private detectTelegramLaunch(): boolean {
-    if (window.Telegram?.WebApp) {
+    if (window.Telegram?.WebApp?.initData?.trim()) {
       return true;
     }
 

@@ -44,6 +44,25 @@
       </div>
     }
 
+    @switch (authStatus()) {
+      @case ('loading') {
+        <div class="vk-launch-status pending">
+          {{ authMessage() }}
+        </div>
+      }
+      @case ('success') {
+        <div class="vk-launch-status success">
+          {{ authMessage() }}
+        </div>
+      }
+      @case ('failed') {
+        <div class="vk-launch-status warning">
+          {{ authMessage() }}
+          <a routerLink="/login" class="vk-launch-inline-link">Обычный вход</a>
+        </div>
+      }
+    }
+
     <div class="vk-launch-grid">
       <section class="vk-launch-block">
         <div class="vk-launch-block-header">

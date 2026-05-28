@@ -2,7 +2,7 @@ import { inject, Injectable, signal, computed } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { tap, catchError, shareReplay } from 'rxjs/operators';
 import { ApiClientService } from './api-client.service';
-import { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, TelegramAuthResponse } from './models/auth.models';
+import { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, TelegramAuthResponse, VkAuthResponse } from './models/auth.models';
 import { UserService } from './user.service';
 import { User } from './models/user.models';
 import { TelegramService } from '../services/telegram.service';
@@ -54,6 +54,17 @@ export class AuthService {
     return this.apiClient.post<TelegramAuthResponse>('/auth/telegram', { init_data: initData })
       .pipe(
         tap(response => this.setSessionToken(response.session_token))
+      );
+  }
+
+  vkAuth(launchParams: string): Observable<VkAuthResponse> {
+    return this.apiClient.post<VkAuthResponse>('/auth/vk', { launch_params: launchParams })
+      .pipe(
+        tap(response => {
+          this.currentUser.set(null);
+          this.currentUserRequest$ = null;
+          this.setSessionToken(response.session_token);
+        })
       );
   }
 
