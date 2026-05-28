@@ -1,113 +1,15 @@
 <main class="vk-launch-page">
   <section class="vk-launch-panel">
-    <header class="vk-launch-header">
-      <p class="vk-launch-eyebrow">VK Mini App</p>
-      <h1 class="vk-launch-title">Параметры запуска</h1>
-    </header>
+    <div class="vk-launch-brand">ОЛАП-ЭКСПРЕСС</div>
+    <div class="vk-launch-spinner"></div>
 
-    @if (hasVkLaunchParams) {
-      <div class="vk-launch-status success">
-        Получены параметры VK.
-      </div>
+    @if (authStatus() === 'failed') {
+      <h1 class="vk-launch-title">Вход через VK</h1>
+      <p class="vk-launch-message">{{ authMessage() }}</p>
+      <a routerLink="/login" class="vk-launch-button">Обычный вход</a>
     } @else {
-      <div class="vk-launch-status warning">
-        Параметры VK пока не найдены. Откройте этот путь из VK Mini App.
-      </div>
+      <h1 class="vk-launch-title">Входим через VK</h1>
+      <p class="vk-launch-phrase">{{ vkAuthPhrase() }}</p>
     }
-
-    @switch (bridgeStatus()) {
-      @case ('ready') {
-        <div class="vk-launch-status success">
-          VK Bridge инициализирован.
-        </div>
-      }
-      @case ('failed') {
-        <div class="vk-launch-status warning">
-          VK Bridge не ответил.
-        </div>
-      }
-      @case ('standalone') {
-        <div class="vk-launch-status warning">
-          Страница открыта не внутри VK iframe или WebView.
-        </div>
-      }
-      @default {
-        <div class="vk-launch-status pending">
-          Инициализируем VK Bridge.
-        </div>
-      }
-    }
-
-    @if (missingParamKeys.length > 0) {
-      <div class="vk-launch-status warning">
-        Не хватает: {{ missingParamKeys.join(', ') }}.
-      </div>
-    }
-
-    @switch (authStatus()) {
-      @case ('loading') {
-        <div class="vk-launch-status pending">
-          {{ authMessage() }}
-        </div>
-      }
-      @case ('success') {
-        <div class="vk-launch-status success">
-          {{ authMessage() }}
-        </div>
-      }
-      @case ('failed') {
-        <div class="vk-launch-status warning">
-          {{ authMessage() }}
-          <a routerLink="/login" class="vk-launch-inline-link">Обычный вход</a>
-        </div>
-      }
-    }
-
-    <div class="vk-launch-grid">
-      <section class="vk-launch-block">
-        <div class="vk-launch-block-header">
-          <h2>Raw launch params</h2>
-          <button type="button" (click)="copy(rawLaunchParams)">Копировать</button>
-        </div>
-        <textarea
-          readonly
-          [value]="rawLaunchParams"
-          aria-label="VK raw launch params"
-        ></textarea>
-      </section>
-
-      <section class="vk-launch-block">
-        <div class="vk-launch-block-header">
-          <h2>JSON для backend</h2>
-          <button type="button" (click)="copy(backendPayload)">Копировать</button>
-        </div>
-        <textarea
-          readonly
-          [value]="backendPayload"
-          aria-label="VK backend payload"
-        ></textarea>
-      </section>
-    </div>
-
-    @if (copyMessage()) {
-      <p class="vk-launch-copy-message">{{ copyMessage() }}</p>
-    }
-
-    <section class="vk-launch-params">
-      <h2>Распознанные поля</h2>
-
-      @if (vkParams.length > 0) {
-        <dl>
-          @for (param of vkParams; track param.key) {
-            <div class="vk-launch-param-row">
-              <dt>{{ param.key }}</dt>
-              <dd>{{ param.value }}</dd>
-            </div>
-          }
-        </dl>
-      } @else {
-        <p class="vk-launch-empty">Поля появятся после запуска через VK.</p>
-      }
-    </section>
   </section>
 </main>
