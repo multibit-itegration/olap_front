@@ -1,136 +1,24 @@
-.vk-launch-page {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  padding: 24px;
-  background: var(--brand-gradient);
+.vk-auth-loading {
+  min-height: 260px;
 }
 
-.vk-launch-panel {
-  width: 100%;
-  max-width: 420px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 40px;
-  border: 1px solid rgba(66, 223, 255, 0.34);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: var(--brand-glow);
-  color: #fff;
-  text-align: center;
-  backdrop-filter: blur(18px);
-  animation: vk-card-enter var(--motion-slow, 320ms) var(--ease-spring, ease-out) both;
+.vk-auth-message {
+  max-width: 320px;
 }
 
-.vk-launch-brand {
-  margin-bottom: 28px;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-shadow: 0 0 24px rgba(66, 223, 255, 0.44);
-}
-
-.vk-launch-spinner {
-  width: 44px;
-  height: 44px;
-  margin-bottom: 22px;
-  border: 4px solid rgba(255, 255, 255, 0.28);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: vk-spin 0.8s linear infinite;
-}
-
-.vk-launch-title {
-  margin: 0;
-  color: #fff;
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
-.vk-launch-phrase,
-.vk-launch-message {
-  min-height: 22px;
-  margin: 12px 0 0;
-  color: rgba(255, 255, 255, 0.84);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-.vk-launch-phrase {
-  animation: vk-phrase-pulse 1.8s var(--ease-out, ease) infinite;
-}
-
-.vk-launch-button {
+.vk-auth-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 48px;
   width: 100%;
-  min-height: 52px;
-  box-sizing: border-box;
-  margin-top: 24px;
+  margin-top: 22px;
   padding: 0 18px;
-  border: 0;
   border-radius: 8px;
-  background: #fff;
+  background: white;
   color: var(--brand-deep);
   font-size: 16px;
   font-weight: 800;
   text-decoration: none;
   text-transform: uppercase;
-  transition:
-    background-color var(--motion-base, 220ms) var(--ease-out, ease),
-    box-shadow var(--motion-base, 220ms) var(--ease-out, ease),
-    transform var(--motion-base, 220ms) var(--ease-spring, ease);
-}
-
-.vk-launch-button:hover {
-  background: #f0f0f0;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(12, 39, 69, 0.22);
-}
-
-@keyframes vk-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes vk-phrase-pulse {
-  0%,
-  100% {
-    opacity: 0.72;
-    transform: translateY(0);
-  }
-  45% {
-    opacity: 1;
-    transform: translateY(-1px);
-  }
-}
-
-@keyframes vk-card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(18px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@media (max-width: 480px) {
-  .vk-launch-page {
-    padding: 20px;
-  }
-
-  .vk-launch-panel {
-    padding: 34px 24px;
-  }
 }

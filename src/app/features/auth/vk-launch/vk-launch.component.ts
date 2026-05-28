@@ -22,7 +22,7 @@ interface VkLaunchParam {
   standalone: true,
   imports: [RouterModule],
   templateUrl: './vk-launch.component.html',
-  styleUrls: ['./vk-launch.component.css'],
+  styleUrls: ['../login/login.component.css', './vk-launch.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class VkLaunchComponent implements OnInit, OnDestroy {

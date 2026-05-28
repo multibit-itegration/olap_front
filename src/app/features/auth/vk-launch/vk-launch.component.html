@@ -1,15 +1,18 @@
-<main class="vk-launch-page">
-  <section class="vk-launch-panel">
-    <div class="vk-launch-brand">ОЛАП-ЭКСПРЕСС</div>
-    <div class="vk-launch-spinner"></div>
+<div class="auth-container">
+  <div class="auth-brand">ОЛАП-ЭКСПРЕСС</div>
+  <h1 class="auth-title">Вход</h1>
 
-    @if (authStatus() === 'failed') {
-      <h1 class="vk-launch-title">Вход через VK</h1>
-      <p class="vk-launch-message">{{ authMessage() }}</p>
-      <a routerLink="/login" class="vk-launch-button">Обычный вход</a>
-    } @else {
-      <h1 class="vk-launch-title">Входим через VK</h1>
-      <p class="vk-launch-phrase">{{ vkAuthPhrase() }}</p>
-    }
-  </section>
-</main>
+  <div class="auth-card">
+    <div class="telegram-auth-loading vk-auth-loading">
+      @if (authStatus() === 'failed') {
+        <p class="telegram-auth-title">Входим через VK</p>
+        <p class="telegram-auth-phrase vk-auth-message">{{ authMessage() }}</p>
+        <a routerLink="/login" class="vk-auth-button">Обычный вход</a>
+      } @else {
+        <div class="loading-spinner"></div>
+        <p class="telegram-auth-title">Входим через VK</p>
+        <p class="telegram-auth-phrase">{{ vkAuthPhrase() }}</p>
+      }
+    </div>
+  </div>
+</div>
