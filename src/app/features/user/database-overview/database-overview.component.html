@@ -60,5 +60,55 @@
         </article>
       }
     </section>
+
+    <section class="waiters-section" aria-label="Топ официантов">
+      <div class="waiters-header">
+        <h2 class="section-title">Топ официантов</h2>
+        <span class="section-note">по продажам за вчера</span>
+      </div>
+
+      @if (waitersLoading()) {
+        <div class="waiters-state">
+          <div class="spinner waiter-spinner"></div>
+          <p>Загрузка официантов...</p>
+        </div>
+      } @else if (waiterCards().length === 0) {
+        <div class="waiters-state empty-waiters">
+          <p>Нет сведений по официантам</p>
+        </div>
+      } @else {
+        <div class="waiters-table-wrap">
+          <table class="waiters-table">
+            <thead>
+              <tr>
+                <th>Официант</th>
+                <th>Продажи</th>
+                <th>Заказы</th>
+                <th>Средний чек</th>
+                <th>Food cost</th>
+                <th>Скидки</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (waiter of waiterCards(); track trackByWaiterRank($index, waiter)) {
+                <tr>
+                  <td data-label="Официант">
+                    <span class="waiter-person">
+                      <span class="waiter-rank">{{ waiter.rank }}</span>
+                      <span class="waiter-name">{{ waiter.name }}</span>
+                    </span>
+                  </td>
+                  <td data-label="Продажи">{{ waiter.income }}</td>
+                  <td data-label="Заказы">{{ waiter.orders }}</td>
+                  <td data-label="Средний чек">{{ waiter.avgBill }}</td>
+                  <td data-label="Food cost">{{ waiter.foodCost }}</td>
+                  <td data-label="Скидки">{{ waiter.discounts }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
   }
 </div>

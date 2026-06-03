@@ -12,7 +12,8 @@ import {
   DiscountsMetric,
   IikoConnection,
   MainMetrics,
-  MetricValue
+  MetricValue,
+  WaiterMetrics
 } from '../../../core/api/models/admin.models';
 
 type MetricKind = 'currency' | 'count' | 'percent';
@@ -32,6 +33,16 @@ interface MetricCardView {
   kind: MetricKind;
   primary?: MetricComparisonView;
   secondary?: MetricComparisonView;
+}
+
+interface WaiterCardView {
+  rank: number;
+  name: string;
+  income: string;
+  orders: string;
+  avgBill: string;
+  foodCost: string;
+  discounts: string;
 }
 
 @Component({
@@ -54,7 +65,9 @@ export class DatabaseOverviewComponent implements OnInit {
   protected readonly adminContext = signal<boolean>(false);
   protected readonly databaseName = signal<string>('База');
   protected readonly metrics = signal<MainMetrics | null>(null);
+  protected readonly waiters = signal<WaiterMetrics[]>([]);
   protected readonly loading = signal<boolean>(true);
+  protected readonly waitersLoading = signal<boolean>(false);
   protected readonly error = signal<string | null>(null);
 
   protected readonly metricCards = computed<MetricCardView[]>(() => {
@@ -70,6 +83,12 @@ export class DatabaseOverviewComponent implements OnInit {
     ];
   });
 
+  protected readonly waiterCards = computed<WaiterCardView[]>(() => (
+    this.waiters()
+      .filter(waiter => this.hasWaiterData(waiter))
+      .map((waiter, index) => this.createWaiterCard(waiter, index))
+  ));
+
   ngOnInit(): void {
     const dbId = this.parseRouteNumber('dbId');
     if (dbId === null) {
@@ -84,7 +103,7 @@ export class DatabaseOverviewComponent implements OnInit {
       this.adminContext.set(true);
       this.ownerUserId.set(adminUserId);
       this.loadDatabaseName(adminUserId);
-      this.loadMetrics();
+      this.loadOverviewData();
       return;
     }
 
@@ -92,7 +111,7 @@ export class DatabaseOverviewComponent implements OnInit {
     if (currentUser) {
       this.ownerUserId.set(currentUser.id);
       this.loadDatabaseName(currentUser.id);
-      this.loadMetrics();
+      this.loadOverviewData();
       return;
     }
 
@@ -102,14 +121,14 @@ export class DatabaseOverviewComponent implements OnInit {
       next: user => {
         this.ownerUserId.set(user.id);
         this.loadDatabaseName(user.id);
-        this.loadMetrics();
+        this.loadOverviewData();
       },
       error: () => this.router.navigate(['/login'])
     });
   }
 
   protected retry(): void {
-    this.loadMetrics();
+    this.loadOverviewData();
   }
 
   protected goBack(): void {
@@ -130,12 +149,21 @@ export class DatabaseOverviewComponent implements OnInit {
     this.router.navigate(['/user/databases', this.dbId(), 'reports']);
   }
 
-  protected trackByMetricId(index: number, card: MetricCardView): string {
+  protected trackByMetricId(_index: number, card: MetricCardView): string {
     return card.id;
+  }
+
+  protected trackByWaiterRank(_index: number, waiter: WaiterCardView): number {
+    return waiter.rank;
   }
 
   protected getComparisonClass(tone: ComparisonTone): string {
     return `comparison-${tone}`;
+  }
+
+  private loadOverviewData(): void {
+    this.loadMetrics();
+    this.loadTopWaiters();
   }
 
   private loadMetrics(): void {
@@ -152,6 +180,18 @@ export class DatabaseOverviewComponent implements OnInit {
     ).subscribe(metrics => {
       this.metrics.set(metrics);
       this.loading.set(false);
+    });
+  }
+
+  private loadTopWaiters(): void {
+    this.waitersLoading.set(true);
+
+    this.adminService.getTopWaiters(this.dbId()).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError(() => of([] as WaiterMetrics[]))
+    ).subscribe(waiters => {
+      this.waiters.set(Array.isArray(waiters) ? waiters : []);
+      this.waitersLoading.set(false);
     });
   }
 
@@ -208,6 +248,31 @@ export class DatabaseOverviewComponent implements OnInit {
       : 'Сумма скидок';
 
     return this.createMetricCard('discounts', 'Скидки', metric, 'currency', hint);
+  }
+
+  private createWaiterCard(waiter: WaiterMetrics, index: number): WaiterCardView {
+    const name = waiter.waiter_name?.trim() || `Официант #${index + 1}`;
+
+    return {
+      rank: index + 1,
+      name,
+      income: this.formatMetricValue(waiter.income_sum, 'currency'),
+      orders: this.formatMetricValue(waiter.orders_sum, 'count'),
+      avgBill: this.formatMetricValue(waiter.avg_bill, 'currency'),
+      foodCost: this.formatMetricValue(waiter.food_cost, 'percent'),
+      discounts: this.formatMetricValue(waiter.discounts_sum, 'currency')
+    };
+  }
+
+  private hasWaiterData(waiter: WaiterMetrics): boolean {
+    return Boolean(
+      waiter.waiter_name?.trim()
+      || (waiter.income_sum !== undefined && waiter.income_sum !== null)
+      || (waiter.orders_sum !== undefined && waiter.orders_sum !== null)
+      || (waiter.avg_bill !== undefined && waiter.avg_bill !== null)
+      || (waiter.food_cost !== undefined && waiter.food_cost !== null)
+      || (waiter.discounts_sum !== undefined && waiter.discounts_sum !== null)
+    );
   }
 
   private createComparison(label: string, details: ComparisonDetails | undefined, kind: MetricKind): MetricComparisonView | undefined {

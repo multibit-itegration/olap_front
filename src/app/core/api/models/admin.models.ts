@@ -41,6 +41,15 @@ export interface MainMetrics {
   discounts?: DiscountsMetric;
 }
 
+export interface WaiterMetrics {
+  waiter_name?: string | null;
+  income_sum?: MetricValue;
+  orders_sum?: MetricValue;
+  avg_bill?: MetricValue;
+  food_cost?: MetricValue;
+  discounts_sum?: MetricValue;
+}
+
 export interface UserUpdateRequest {
   name?: string | null;
   phone?: string | null;

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
 import { User } from './models/user.models';
-import { License, IikoConnection, MainMetrics, UserUpdateRequest, UserUpdateResponse, LicenseUpdateRequest, IikoConnectionCreateRequest, IikoConnectionUpdateRequest } from './models/admin.models';
+import { License, IikoConnection, MainMetrics, WaiterMetrics, UserUpdateRequest, UserUpdateResponse, LicenseUpdateRequest, IikoConnectionCreateRequest, IikoConnectionUpdateRequest } from './models/admin.models';
 
 @Injectable({
   providedIn: 'root'
@@ -25,6 +25,10 @@ export class AdminService {
 
   getMainMetrics(connectionId: number): Observable<MainMetrics> {
     return this.apiClient.get<MainMetrics>(`/iiko_connections/main_metrics/${connectionId}`);
+  }
+
+  getTopWaiters(connectionId: number): Observable<WaiterMetrics[]> {
+    return this.apiClient.get<WaiterMetrics[]>(`/iiko_connections/top_waiters/${connectionId}`);
   }
 
   getUserById(userId: number): Observable<User> {

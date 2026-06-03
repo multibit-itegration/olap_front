@@ -231,6 +231,120 @@
   color: #51677f;
 }
 
+.waiters-section {
+  border: 1px solid #cfe0f5;
+  border-radius: 8px;
+  background-color: #f8fbff;
+  padding: 18px;
+}
+
+.waiters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.section-note {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.waiters-state {
+  display: flex;
+  min-height: 112px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px dashed #cfe0f5;
+  border-radius: 8px;
+  background-color: white;
+  color: #667085;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.waiters-state p {
+  margin: 0;
+}
+
+.empty-waiters {
+  color: #51677f;
+}
+
+.waiter-spinner {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border-width: 3px;
+}
+
+.waiters-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.waiters-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.waiters-table th,
+.waiters-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e3e8ef;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.waiters-table th {
+  color: #51677f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.waiters-table td {
+  color: #0c2745;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.waiters-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.waiter-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.waiter-rank {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #eef6ff;
+  color: #0c4175;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.waiter-name {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 @media (max-width: 1024px) {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -263,6 +377,69 @@
 
   .metric-card {
     min-height: 0;
+  }
+
+  .waiters-header {
+    flex-wrap: wrap;
+  }
+
+  .waiters-table-wrap {
+    overflow-x: visible;
+    border: none;
+    background-color: transparent;
+  }
+
+  .waiters-table {
+    min-width: 0;
+  }
+
+  .waiters-table,
+  .waiters-table tbody,
+  .waiters-table tr,
+  .waiters-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .waiters-table thead {
+    display: none;
+  }
+
+  .waiters-table tr {
+    margin-bottom: 10px;
+    border: 1px solid #e3e8ef;
+    border-radius: 8px;
+    background-color: white;
+    overflow: hidden;
+  }
+
+  .waiters-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .waiters-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    white-space: normal;
+  }
+
+  .waiters-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: #667085;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .waiters-table td:first-child {
+    justify-content: flex-start;
+  }
+
+  .waiters-table td:first-child::before {
+    display: none;
   }
 }
 
