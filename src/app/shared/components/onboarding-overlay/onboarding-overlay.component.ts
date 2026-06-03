@@ -154,6 +154,10 @@ export class OnboardingOverlayComponent {
       return true;
     }
 
+    if (this.onboarding.active() && this.onboarding.step().id === 'set_password') {
+      return this.onboarding.targetRect() !== null;
+    }
+
     return this.onboarding.active() && this.onboarding.step().id !== 'database_form';
   }
 

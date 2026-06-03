@@ -315,7 +315,9 @@ export class UserProfileComponent implements OnInit, AfterViewInit {
     }
 
     if (this.scrollTargetIntoViewIfNeeded(field)) {
+      this.clearOnboardingTarget();
       window.setTimeout(() => this.updatePasswordTargetRect(), 260);
+      return;
     }
 
     this.setTargetForElement(field, 8, window.innerWidth <= 900 ? 330 : 250);
