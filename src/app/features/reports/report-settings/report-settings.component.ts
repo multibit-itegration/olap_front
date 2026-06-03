@@ -24,6 +24,7 @@ import { AuthService } from '../../../core/api/auth.service';
 import { LicenseService } from '../../../core/api/license.service';
 import { LinkedChatsService } from '../../../core/api/linked-chats.service';
 import { OnboardingService } from '../../../core/services/onboarding.service';
+import { LayoutUiService } from '../../../core/services/layout-ui.service';
 import { License } from '../../../core/api/models/license.models';
 import { DeliveryType, Report, ScheduleType, IndividualSchedule, GroupSchedule, GlobalSchedule, ScheduleFrequency, SCHEDULE_FREQUENCY_LABELS, TIMEZONE_CHOICES, WEEKDAY_LABELS } from '../../../core/api/models/report.models';
 import { LinkedChat } from '../../../core/api/models/linked-chats.models';
@@ -46,6 +47,7 @@ const DEFAULT_GLOBAL_SCHEDULE_FORM = {
   dayOfMonth: '1',
   dataPeriod: 7
 };
+const REPORT_SETTINGS_MODAL_NAV_REASON = 'report-settings-modal';
 
 @Component({
   selector: 'app-report-settings',
@@ -65,6 +67,7 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
   private readonly destroyRef = inject(DestroyRef);
   private readonly hostElement = inject(ElementRef<HTMLElement>);
   protected readonly onboarding = inject(OnboardingService);
+  private readonly layoutUi = inject(LayoutUiService);
 
   // Timeout IDs for cleanup
   private featureRequestTimeoutId?: number;
@@ -657,11 +660,13 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     this.showGlobalScheduleModal.set(true);
+    this.layoutUi.setMobileNavHidden(REPORT_SETTINGS_MODAL_NAV_REASON, true);
     this.loadGlobalSchedule();
   }
 
   protected closeGlobalScheduleModal(): void {
     this.showGlobalScheduleModal.set(false);
+    this.layoutUi.setMobileNavHidden(REPORT_SETTINGS_MODAL_NAV_REASON, false);
     this.globalScheduleError.set(null);
     this.resetGlobalScheduleForm();
   }
@@ -807,6 +812,7 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
       if (schedule) {
         this.applyGlobalScheduleToForm(schedule);
         this.showGlobalScheduleModal.set(false);
+        this.layoutUi.setMobileNavHidden(REPORT_SETTINGS_MODAL_NAV_REASON, false);
       }
 
       this.globalScheduleSaving.set(false);
@@ -1233,6 +1239,8 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   ngOnDestroy(): void {
+    this.layoutUi.setMobileNavHidden(REPORT_SETTINGS_MODAL_NAV_REASON, false);
+
     // Clean up all timeouts
     if (this.featureRequestTimeoutId !== undefined) {
       clearTimeout(this.featureRequestTimeoutId);

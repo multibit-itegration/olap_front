@@ -77,7 +77,7 @@ export class DatabaseOverviewComponent implements OnInit {
       this.createMetricCard('income', 'Выручка', metrics?.income, 'currency', 'Ключевой показатель продаж'),
       this.createMetricCard('orders', 'Заказы', metrics?.orders_count, 'count', 'Количество заказов'),
       this.createMetricCard('avg-bill', 'Средний чек', metrics?.avg_bill, 'currency', 'Средняя сумма заказа'),
-      this.createMetricCard('food-cost', 'Food cost', metrics?.food_cost, 'percent', 'Доля себестоимости'),
+      this.createMetricCard('food-cost', 'Фудкост', metrics?.food_cost, 'percent', 'Доля себестоимости'),
       this.createMetricCard('selfprice', 'Себестоимость', metrics?.selfprice ?? null, 'currency', 'Сумма себестоимости'),
       this.createDiscountCard(metrics?.discounts)
     ];

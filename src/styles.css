@@ -449,6 +449,7 @@ body :is(.modal-content.modal-content) {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 body :is(.modal-header.modal-header) {
@@ -458,6 +459,7 @@ body :is(.modal-header.modal-header) {
   padding: 24px 24px 20px;
   border-bottom: 1px solid rgba(207, 224, 245, 0.92);
   position: relative;
+  flex: 0 0 auto;
 }
 
 body :is(.modal-close.modal-close) {
@@ -474,12 +476,15 @@ body :is(.modal-close.modal-close) {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1;
 }
 
 body :is(.modal-body.modal-body) {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 20px 24px;
+  overscroll-behavior: contain;
 }
 
 body :is(.modal-footer.modal-footer) {
@@ -487,6 +492,7 @@ body :is(.modal-footer.modal-footer) {
   border-top: 1px solid rgba(207, 224, 245, 0.92);
   display: flex;
   justify-content: center;
+  flex: 0 0 auto;
 }
 
 body :is(.modal-header.modal-header, .modal-footer.modal-footer, .modal-search-section.modal-search-section) {
@@ -544,11 +550,14 @@ body :is(.form-input.form-input, .field-input.field-input, .settings-select.sett
   body :is(.modal-overlay.modal-overlay) {
     padding: 0;
     align-items: stretch;
+    height: 100dvh;
+    overflow: hidden;
   }
 
   body :is(.modal-content.modal-content) {
     height: 100dvh;
     max-height: 100dvh;
+    min-height: 0;
     border-radius: 0;
     max-width: 100%;
   }
@@ -559,6 +568,15 @@ body :is(.form-input.form-input, .field-input.field-input, .settings-select.sett
 
   body :is(.modal-title.modal-title) {
     font-size: 16px;
+    padding: 0 42px;
+  }
+
+  body :is(.modal-close.modal-close) {
+    right: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    color: #475467;
+    background-color: rgba(255, 255, 255, 0.92);
   }
 
   body :is(.modal-body.modal-body) {
