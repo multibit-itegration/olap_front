@@ -47,6 +47,11 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+html.onboarding-scroll-locked,
+body.onboarding-scroll-locked {
+  overscroll-behavior: none;
+}
+
 /* Prevent iOS auto-zoom on input focus in Telegram Web App */
 input,
 select,

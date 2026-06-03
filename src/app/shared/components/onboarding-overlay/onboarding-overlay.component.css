@@ -168,6 +168,7 @@
   width: min(520px, 100%);
   max-height: calc(100vh - 48px);
   overflow: hidden;
+  overscroll-behavior: contain;
   padding: 38px 38px 34px;
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 8px;
@@ -187,6 +188,7 @@
   width: min(520px, calc(100vw - 40px));
   max-height: calc(100vh - 180px);
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 22px 28px 24px;
   border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: 8px;
