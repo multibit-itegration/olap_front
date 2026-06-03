@@ -30,7 +30,7 @@
           </svg>
           <span class="profile-name">{{ authService.currentUser()?.name || 'Профиль' }}</span>
         </button>
-        @if (!telegramService.isTelegramWebApp()) {
+        @if (!telegramService.isTelegramLaunch()) {
           <button class="logout-btn" (click)="onLogout()">Выход</button>
         }
       </div>

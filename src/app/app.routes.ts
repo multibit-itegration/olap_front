@@ -41,6 +41,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/user/user-databases/user-databases.component').then(m => m.UserDatabasesComponent)
       },
       {
+        path: 'databases/:dbId',
+        loadComponent: () => import('./features/user/database-overview/database-overview.component').then(m => m.DatabaseOverviewComponent)
+      },
+      {
         path: 'databases/:dbId/reports',
         loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent)
       },
@@ -81,6 +85,10 @@ export const routes: Routes = [
       {
         path: 'users/:id/databases',
         loadComponent: () => import('./features/admin/user-databases/admin-user-databases.component').then(m => m.AdminUserDatabasesComponent)
+      },
+      {
+        path: 'users/:id/databases/:dbId',
+        loadComponent: () => import('./features/user/database-overview/database-overview.component').then(m => m.DatabaseOverviewComponent)
       },
       {
         path: 'users/:id/databases/:dbId/reports',

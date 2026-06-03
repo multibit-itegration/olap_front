@@ -295,6 +295,10 @@ export class UserDatabasesComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/user/databases', database.id, 'reports']);
   }
 
+  protected onOverview(database: IikoConnection): void {
+    this.router.navigate(['/user/databases', database.id]);
+  }
+
   private openReportsForOnboarding(database: IikoConnection): void {
     this.openReportsByIdForOnboarding(database.id);
   }

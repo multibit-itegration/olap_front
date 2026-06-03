@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
 import { User } from './models/user.models';
-import { License, IikoConnection, UserUpdateRequest, UserUpdateResponse, LicenseUpdateRequest, IikoConnectionCreateRequest, IikoConnectionUpdateRequest } from './models/admin.models';
+import { License, IikoConnection, MainMetrics, UserUpdateRequest, UserUpdateResponse, LicenseUpdateRequest, IikoConnectionCreateRequest, IikoConnectionUpdateRequest } from './models/admin.models';
 
 @Injectable({
   providedIn: 'root'
@@ -21,6 +21,10 @@ export class AdminService {
   getIikoConnectionsByUserId(userId: number): Observable<IikoConnection[]> {
     // 404 is expected when user has no iiko connections - don't log it as error
     return this.apiClient.get<IikoConnection[]>(`/iiko_connections/${userId}`, { silentErrors: [404] });
+  }
+
+  getMainMetrics(connectionId: number): Observable<MainMetrics> {
+    return this.apiClient.get<MainMetrics>(`/iiko_connections/main_metrics/${connectionId}`);
   }
 
   getUserById(userId: number): Observable<User> {

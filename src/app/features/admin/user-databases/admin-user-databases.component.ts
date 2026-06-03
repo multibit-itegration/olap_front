@@ -92,6 +92,10 @@ export class AdminUserDatabasesComponent implements OnInit {
     this.router.navigate(['/admin/users', this.userId(), 'databases', database.id, 'reports']);
   }
 
+  protected onOverview(database: IikoConnection): void {
+    this.router.navigate(['/admin/users', this.userId(), 'databases', database.id]);
+  }
+
   protected onSettings(database: IikoConnection): void {
     this.editingConnection.set(database);
     this.formName.set(database.name);

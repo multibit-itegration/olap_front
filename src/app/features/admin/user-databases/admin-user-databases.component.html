@@ -180,6 +180,9 @@
           <div class="database-card">
             <div class="database-name">{{ database.name }}</div>
             <div class="database-actions">
+              <button class="action-btn overview-btn" type="button" (click)="onOverview(database)">
+                Обзор
+              </button>
               <button class="action-btn reports-btn" (click)="onReports(database)">
                 Отчёты
               </button>

@@ -114,7 +114,15 @@
   border: 2px solid #e0e0e0;
 }
 
-.reports-btn:hover {
+.overview-btn {
+  background-color: #eef6ff;
+  color: var(--brand-deep);
+  border: 2px solid rgba(207, 224, 245, 0.95);
+  font-weight: 700;
+}
+
+.reports-btn:hover,
+.overview-btn:hover {
   background-color: #f9f9f9;
   border-color: #ccc;
   color: #333;

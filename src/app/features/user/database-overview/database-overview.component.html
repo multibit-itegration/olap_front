@@ -1,0 +1,64 @@
+<div class="overview-container">
+  <div class="header-section">
+    <button class="back-btn" type="button" (click)="goBack()" title="Назад">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="title-block">
+      <h1 class="page-title">{{ databaseName() }}</h1>
+      <p class="page-subtitle">Обзор основных показателей базы</p>
+    </div>
+    <button class="reports-link-btn" type="button" (click)="openReports()">
+      Перейти к отчётам
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка показателей...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+      <button class="retry-btn" type="button" (click)="retry()">Повторить</button>
+    </div>
+  } @else {
+    <section class="summary-hero">
+      <div>
+        <h2 class="section-title">Основные показатели</h2>
+      </div>
+      <span class="freshness-badge">За вчера</span>
+    </section>
+
+    <section class="metric-grid" aria-label="Основные показатели">
+      @for (card of metricCards(); track trackByMetricId($index, card)) {
+        <article class="metric-card">
+          <div class="metric-heading">
+            <span class="metric-title">{{ card.title }}</span>
+            <span class="metric-hint">{{ card.hint }}</span>
+          </div>
+          <strong class="metric-value">{{ card.value }}</strong>
+          <div class="metric-comparisons">
+            @if (card.primary) {
+              <span class="comparison-chip" [ngClass]="getComparisonClass(card.primary.tone)">
+                {{ card.primary.value }}
+              </span>
+              <span class="comparison-label">{{ card.primary.label }}</span>
+            } @else {
+              <span class="comparison-empty">Нет сравнения</span>
+            }
+
+            @if (card.secondary) {
+              <span class="comparison-chip" [ngClass]="getComparisonClass(card.secondary.tone)">
+                {{ card.secondary.value }}
+              </span>
+              <span class="comparison-label">{{ card.secondary.label }}</span>
+            }
+          </div>
+        </article>
+      }
+    </section>
+  }
+</div>

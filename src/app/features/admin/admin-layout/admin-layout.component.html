@@ -23,7 +23,7 @@
         </a>
         <span class="nav-tab disabled">Тех. поддержка</span>
       </nav>
-      @if (!telegramService.isTelegramWebApp()) {
+      @if (!telegramService.isTelegramLaunch()) {
         <button class="logout-btn" (click)="onLogout()">Выход</button>
       }
     </div>
