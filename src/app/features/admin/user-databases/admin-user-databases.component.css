@@ -93,11 +93,18 @@
 }
 
 .database-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) minmax(104px, 1fr) 40px;
+  align-items: center;
   gap: 12px;
+  min-width: min(100%, 316px);
 }
 
 .action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
   padding: 10px 24px;
   border: none;
   border-radius: 8px;
@@ -129,15 +136,24 @@
 }
 
 .settings-btn {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
   background-color: #fff9c4;
   color: #f57f17;
   border: 2px solid #fff59d;
+  flex-shrink: 0;
 }
 
 .settings-btn:hover {
   background-color: #fff59d;
   border-color: #ffee58;
   color: #f57f17;
+}
+
+.settings-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .loading-state,
@@ -393,11 +409,12 @@
 
   .database-actions {
     width: 100%;
-    justify-content: flex-end;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
+    min-width: 0;
   }
 
   .action-btn {
-    flex: 1;
+    padding: 10px 16px;
   }
 
   .form-container {
