@@ -100,7 +100,7 @@
   min-width: min(100%, 316px);
 }
 
-.action-btn {
+.database-actions .action-btn.action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -135,25 +135,31 @@
   color: #333;
 }
 
-.settings-btn {
+.database-actions .settings-btn.settings-btn {
   width: 40px;
+  height: 40px;
+  min-width: 40px;
   min-height: 40px;
+  max-width: 40px;
   padding: 0;
   background-color: #fff9c4;
   color: #f57f17;
   border: 2px solid #fff59d;
   flex-shrink: 0;
+  aspect-ratio: 1;
 }
 
-.settings-btn:hover {
+.database-actions .settings-btn.settings-btn:hover {
   background-color: #fff59d;
   border-color: #ffee58;
   color: #f57f17;
 }
 
 .settings-icon {
-  width: 18px;
-  height: 18px;
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
 }
 
 .loading-state,
@@ -409,12 +415,29 @@
 
   .database-actions {
     width: 100%;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
     min-width: 0;
+    gap: 10px;
   }
 
-  .action-btn {
-    padding: 10px 16px;
+  .database-actions .action-btn.action-btn {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+  .database-actions .settings-btn.settings-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    max-width: 44px;
+  }
+
+  .settings-icon {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
   }
 
   .form-container {

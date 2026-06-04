@@ -1,40 +1,76 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { ApiClientService } from './api-client.service';
 import { Report, IikoReport, CreateReportsRequest, GlobalSchedule, CreateGlobalScheduleRequest, UpdateGlobalScheduleRequest, UpdateReportRequest, IndividualSchedule, CreateIndividualScheduleRequest, UpdateIndividualScheduleRequest, GroupSchedule, CreateGroupScheduleRequest, UpdateGroupScheduleRequest } from './models/report.models';
+import { getCachedRequest, RequestCacheEntry, setCachedValue } from './request-cache';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReportService {
   private readonly apiClient = inject(ApiClientService);
+  private readonly shortCacheTtlMs = 2 * 60 * 1000;
+  private readonly catalogCacheTtlMs = 10 * 60 * 1000;
+  private readonly reportsCache = new Map<string, RequestCacheEntry<Report[]>>();
+  private readonly iikoReportsCache = new Map<string, RequestCacheEntry<IikoReport[]>>();
+  private readonly reportCache = new Map<string, RequestCacheEntry<Report>>();
+  private readonly globalScheduleCache = new Map<string, RequestCacheEntry<GlobalSchedule>>();
+  private readonly individualScheduleCache = new Map<string, RequestCacheEntry<IndividualSchedule>>();
+  private readonly groupScheduleCache = new Map<string, RequestCacheEntry<GroupSchedule>>();
 
   getReportsByConnectionId(connectionId: number): Observable<Report[]> {
-    return this.apiClient.get<Report[]>(`/reports/${connectionId}`);
+    return getCachedRequest(
+      this.reportsCache,
+      String(connectionId),
+      this.shortCacheTtlMs,
+      () => this.apiClient.get<Report[]>(`/reports/${connectionId}`)
+    );
   }
 
   getIikoReports(connectionId: number): Observable<IikoReport[]> {
-    return this.apiClient.get<IikoReport[]>(`/reports/${connectionId}/iiko_reports`);
+    return getCachedRequest(
+      this.iikoReportsCache,
+      String(connectionId),
+      this.catalogCacheTtlMs,
+      () => this.apiClient.get<IikoReport[]>(`/reports/${connectionId}/iiko_reports`)
+    );
   }
 
   createReports(connectionId: number, request: CreateReportsRequest): Observable<void> {
-    return this.apiClient.post<void>(`/reports/${connectionId}`, request);
+    return this.apiClient.post<void>(`/reports/${connectionId}`, request).pipe(
+      tap(() => this.reportsCache.delete(String(connectionId)))
+    );
   }
 
   getGlobalSchedule(connectionId: number): Observable<GlobalSchedule> {
-    return this.apiClient.get<GlobalSchedule>(`/schedules/global/${connectionId}`);
+    return getCachedRequest(
+      this.globalScheduleCache,
+      String(connectionId),
+      this.shortCacheTtlMs,
+      () => this.apiClient.get<GlobalSchedule>(`/schedules/global/${connectionId}`)
+    );
   }
 
   createGlobalSchedule(connectionId: number, request: CreateGlobalScheduleRequest): Observable<GlobalSchedule> {
-    return this.apiClient.post<GlobalSchedule>(`/schedules/global/${connectionId}`, request);
+    return this.apiClient.post<GlobalSchedule>(`/schedules/global/${connectionId}`, request).pipe(
+      tap(schedule => setCachedValue(this.globalScheduleCache, String(connectionId), schedule, this.shortCacheTtlMs))
+    );
   }
 
   updateGlobalSchedule(connectionId: number, request: UpdateGlobalScheduleRequest): Observable<GlobalSchedule> {
-    return this.apiClient.patch<GlobalSchedule>(`/schedules/global/${connectionId}`, request);
+    return this.apiClient.patch<GlobalSchedule>(`/schedules/global/${connectionId}`, request).pipe(
+      tap(schedule => setCachedValue(this.globalScheduleCache, String(connectionId), schedule, this.shortCacheTtlMs))
+    );
   }
 
   getReport(reportId: number): Observable<Report> {
-    return this.apiClient.get<Report>(`/reports/report/${reportId}`);
+    return getCachedRequest(
+      this.reportCache,
+      String(reportId),
+      this.shortCacheTtlMs,
+      () => this.apiClient.get<Report>(`/reports/report/${reportId}`)
+    );
   }
 
   updateReport(reportId: number, request: UpdateReportRequest): Observable<Report> {
@@ -51,23 +87,46 @@ export class ReportService {
       payload.schedule_type = request.schedule_type;
     }
 
-    return this.apiClient.patch<Report>(`/reports/${reportId}`, payload);
+    return this.apiClient.patch<Report>(`/reports/${reportId}`, payload).pipe(
+      tap(report => {
+        setCachedValue(this.reportCache, String(reportId), report, this.shortCacheTtlMs);
+        this.reportsCache.clear();
+      })
+    );
   }
 
   updateReportStructure(reportId: number): Observable<void> {
-    return this.apiClient.post<void>(`/reports/${reportId}/update_structure`, {});
+    return this.apiClient.post<void>(`/reports/${reportId}/update_structure`, {}).pipe(
+      tap(() => {
+        this.reportCache.delete(String(reportId));
+        this.reportsCache.clear();
+      })
+    );
   }
 
   deleteReport(reportId: number): Observable<void> {
-    return this.apiClient.delete<void>(`/reports/${reportId}`);
+    return this.apiClient.delete<void>(`/reports/${reportId}`).pipe(
+      tap(() => {
+        this.reportCache.delete(String(reportId));
+        this.reportsCache.clear();
+        this.individualScheduleCache.delete(String(reportId));
+      })
+    );
   }
 
   getIndividualSchedule(reportId: number): Observable<IndividualSchedule> {
-    return this.apiClient.get<IndividualSchedule>(`/schedules/individual/${reportId}`);
+    return getCachedRequest(
+      this.individualScheduleCache,
+      String(reportId),
+      this.shortCacheTtlMs,
+      () => this.apiClient.get<IndividualSchedule>(`/schedules/individual/${reportId}`)
+    );
   }
 
   createIndividualSchedule(reportId: number, request: CreateIndividualScheduleRequest): Observable<IndividualSchedule> {
-    return this.apiClient.post<IndividualSchedule>(`/schedules/individual/${reportId}`, request);
+    return this.apiClient.post<IndividualSchedule>(`/schedules/individual/${reportId}`, request).pipe(
+      tap(schedule => setCachedValue(this.individualScheduleCache, String(reportId), schedule, this.shortCacheTtlMs))
+    );
   }
 
   updateIndividualSchedule(reportId: number, request: UpdateIndividualScheduleRequest): Observable<IndividualSchedule> {
@@ -83,15 +142,29 @@ export class ReportService {
       payload.data_period_days = request.data_period_days;
     }
 
-    return this.apiClient.patch<IndividualSchedule>(`/schedules/individual/${reportId}`, payload);
+    return this.apiClient.patch<IndividualSchedule>(`/schedules/individual/${reportId}`, payload).pipe(
+      tap(schedule => setCachedValue(this.individualScheduleCache, String(reportId), schedule, this.shortCacheTtlMs))
+    );
   }
 
   getGroupSchedule(reportId: number, linkedChatId: number): Observable<GroupSchedule> {
-    return this.apiClient.get<GroupSchedule>(`/schedules/groups_schedules/${reportId}/${linkedChatId}`);
+    return getCachedRequest(
+      this.groupScheduleCache,
+      this.getGroupScheduleCacheKey(reportId, linkedChatId),
+      this.shortCacheTtlMs,
+      () => this.apiClient.get<GroupSchedule>(`/schedules/groups_schedules/${reportId}/${linkedChatId}`)
+    );
   }
 
   createGroupSchedule(reportId: number, linkedChatId: number, request: CreateGroupScheduleRequest): Observable<GroupSchedule> {
-    return this.apiClient.post<GroupSchedule>(`/schedules/groups_schedules/${reportId}/${linkedChatId}`, request);
+    return this.apiClient.post<GroupSchedule>(`/schedules/groups_schedules/${reportId}/${linkedChatId}`, request).pipe(
+      tap(schedule => setCachedValue(
+        this.groupScheduleCache,
+        this.getGroupScheduleCacheKey(reportId, linkedChatId),
+        schedule,
+        this.shortCacheTtlMs
+      ))
+    );
   }
 
   updateGroupSchedule(reportId: number, linkedChatId: number, request: UpdateGroupScheduleRequest): Observable<GroupSchedule> {
@@ -110,6 +183,17 @@ export class ReportService {
       payload.is_active = request.is_active;
     }
 
-    return this.apiClient.patch<GroupSchedule>(`/schedules/groups_schedules/${reportId}/${linkedChatId}`, payload);
+    return this.apiClient.patch<GroupSchedule>(`/schedules/groups_schedules/${reportId}/${linkedChatId}`, payload).pipe(
+      tap(schedule => setCachedValue(
+        this.groupScheduleCache,
+        this.getGroupScheduleCacheKey(reportId, linkedChatId),
+        schedule,
+        this.shortCacheTtlMs
+      ))
+    );
+  }
+
+  private getGroupScheduleCacheKey(reportId: number, linkedChatId: number): string {
+    return `${reportId}:${linkedChatId}`;
   }
 }

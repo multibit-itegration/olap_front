@@ -102,7 +102,7 @@ textarea:focus-visible {
 }
 
 :where(.admin-content, .user-content) > * {
-  animation: page-enter var(--motion-slow) var(--ease-spring) both;
+  animation: page-enter var(--motion-slow) var(--ease-spring) backwards;
 }
 
 :where(
@@ -438,8 +438,10 @@ body :is(.modal-overlay.modal-overlay) {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1100;
+  z-index: 5000;
   padding: 20px;
+  width: 100vw;
+  min-height: 100vh;
 }
 
 body :is(.modal-content.modal-content) {

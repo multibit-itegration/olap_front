@@ -30,6 +30,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/user/user-layout/user-layout.component').then(m => m.UserLayoutComponent),
     canActivateChild: [roleGuard(['user'])],
+    data: { preload: true, preloadDelay: 300 },
     children: [
       {
         path: '',
@@ -38,14 +39,17 @@ export const routes: Routes = [
       },
       {
         path: 'databases',
+        data: { preload: true, preloadDelay: 600 },
         loadComponent: () => import('./features/user/user-databases/user-databases.component').then(m => m.UserDatabasesComponent)
       },
       {
         path: 'databases/:dbId',
+        data: { preload: true, preloadDelay: 900 },
         loadComponent: () => import('./features/user/database-overview/database-overview.component').then(m => m.DatabaseOverviewComponent)
       },
       {
         path: 'databases/:dbId/reports',
+        data: { preload: true, preloadDelay: 1200 },
         loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent)
       },
       {
