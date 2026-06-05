@@ -303,6 +303,12 @@
               <p>Нет доступных отчётов</p>
             </div>
           } @else {
+            @if (reportCreateError()) {
+              <div class="modal-submit-error" role="alert">
+                {{ reportCreateError() }}
+              </div>
+            }
+
             <div class="report-groups-list">
               @for (group of groupedIikoReports(); track trackByIikoGroupType($index, group)) {
                 <div class="modal-report-group">

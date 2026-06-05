@@ -854,6 +854,36 @@ describe('ReportsComponent', () => {
         });
       });
     });
+
+    it('should keep report picker open and show duplicate message on 409 conflict', (done) => {
+      const error = new HttpErrorResponse({
+        status: 409,
+        statusText: 'Conflict',
+        error: {
+          detail: "Отчёты со следующими iiko_report_id уже существуют для iiko_connection с id 273 ['report-123']"
+        }
+      });
+      reportServiceSpy.createReports.and.returnValue(throwError(() => error));
+
+      const fixture = TestBed.createComponent(ReportsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        component['showModal'].set(true);
+        component['selectedReportIds'].set(new Set(['report-123']));
+        component['submitSelectedReports']();
+
+        setTimeout(() => {
+          expect(component['reportCreateError']()).toBe('Данный отчёт уже добавлен, выберите другой');
+          expect(component['modalError']()).toBeNull();
+          expect(component['showModal']()).toBeTrue();
+          expect(component['selectedCount']()).toBe(0);
+          expect(component['submitting']()).toBeFalse();
+          done();
+        });
+      });
+    });
   });
 
   describe('onConfigureReport', () => {

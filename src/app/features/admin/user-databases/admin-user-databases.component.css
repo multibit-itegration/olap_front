@@ -106,7 +106,7 @@
   justify-content: center;
   min-height: 40px;
   padding: 10px 24px;
-  border: none;
+  border: 2px solid transparent;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
@@ -115,21 +115,21 @@
   white-space: nowrap;
 }
 
-.reports-btn {
+.database-actions .reports-btn.reports-btn {
   background-color: white;
   color: #666;
   border: 2px solid #e0e0e0;
 }
 
-.overview-btn {
+.database-actions .overview-btn.overview-btn {
   background-color: #eef6ff;
   color: var(--brand-deep);
   border: 2px solid rgba(207, 224, 245, 0.95);
   font-weight: 700;
 }
 
-.reports-btn:hover,
-.overview-btn:hover {
+.database-actions .reports-btn.reports-btn:hover,
+.database-actions .overview-btn.overview-btn:hover {
   background-color: #f9f9f9;
   border-color: #ccc;
   color: #333;

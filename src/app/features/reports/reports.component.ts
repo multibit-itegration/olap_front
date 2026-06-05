@@ -128,6 +128,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly iikoReports = signal<IikoReport[]>([]);
   protected readonly modalLoading = signal<boolean>(false);
   protected readonly modalError = signal<string | null>(null);
+  protected readonly reportCreateError = signal<string | null>(null);
   protected readonly selectedReportIds = signal<Set<string>>(new Set());
   protected readonly expandedGroups = signal<Set<string>>(new Set());
   protected readonly submitting = signal<boolean>(false);
@@ -889,6 +890,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadIikoReports(): void {
     this.modalLoading.set(true);
     this.modalError.set(null);
+    this.reportCreateError.set(null);
     this.iikoReports.set([]);
     this.selectedReportIds.set(new Set());
 
@@ -915,6 +917,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedReportIds.set(new Set());
     this.expandedGroups.set(new Set());
     this.modalError.set(null);
+    this.reportCreateError.set(null);
     this.searchQuery.set('');
 
     if (shouldResumeOnboarding) {
@@ -938,6 +941,8 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected toggleReportSelection(reportId: string): void {
+    this.reportCreateError.set(null);
+
     const current = new Set(this.selectedReportIds());
     if (current.has(reportId)) {
       current.delete(reportId);
@@ -961,6 +966,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     if (selected.length === 0) return;
 
     this.submitting.set(true);
+    this.reportCreateError.set(null);
 
     this.reportService.createReports(this.dbId(), {
       iiko_reports_ids: selected,
@@ -968,7 +974,10 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     }).pipe(
       takeUntilDestroyed(this.destroyRef),
       catchError((err: HttpErrorResponse) => {
-        this.modalError.set('Не удалось создать отчёты');
+        this.reportCreateError.set(this.getCreateReportsErrorMessage(err));
+        if (this.isDuplicateReportConflict(err)) {
+          this.selectedReportIds.set(new Set());
+        }
         this.submitting.set(false);
         return EMPTY;
       })
@@ -984,6 +993,30 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
         window.setTimeout(() => this.onboarding.openAtStep('configure_report'));
       }
     });
+  }
+
+  private getCreateReportsErrorMessage(err: HttpErrorResponse): string {
+    if (this.isDuplicateReportConflict(err)) {
+      return 'Данный отчёт уже добавлен, выберите другой';
+    }
+
+    const detail = this.extractBackendErrorText(err.error);
+    if (detail) {
+      return `Не удалось создать отчёты: ${detail}`;
+    }
+
+    return err.status
+      ? `Не удалось создать отчёты (код ${err.status})`
+      : 'Не удалось создать отчёты: нет соединения с сервером';
+  }
+
+  private isDuplicateReportConflict(err: HttpErrorResponse): boolean {
+    if (err.status === 409) {
+      return true;
+    }
+
+    const detail = this.extractBackendErrorText(err.error)?.toLowerCase() ?? '';
+    return detail.includes('iiko_report_id') && detail.includes('уже существ');
   }
 
   protected trackByReportId(index: number, report: Report): number {
