@@ -79,5 +79,6 @@ input[type="time"].field-input{display:block;max-width:100%;min-width:0;overflow
 .group-settings-panel{margin-top:20px;padding-top:20px;border-top:2px solid #e0e0e0}
 .group-select-wrapper{margin-bottom:20px}
 .group-select-wrapper .field-label{text-align:left;margin-bottom:8px;display:block;font-size:14px}
+.selected-group-platform{margin:8px 0 0;color:var(--text-muted);font-size:13px;font-weight:600}.selected-group-platform strong{color:var(--brand-deep)}
 @media(max-width:768px){.checkbox-text{font-size:15px}.no-groups-message{padding:12px}.no-groups-message p{font-size:13px}.group-select-wrapper .field-label{font-size:12px}}
 @media(max-width:480px){.checkbox-input{width:18px;height:18px}.checkbox-text{font-size:14px}.no-groups-message{padding:10px}.no-groups-message p{font-size:12px}}

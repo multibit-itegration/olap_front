@@ -325,9 +325,13 @@
                 [disabled]="groupScheduleSaving()"
               >
                 @for (chat of linkedChats(); track chat.id) {
-                  <option [value]="chat.id">{{ chat.group_name }}</option>
+                  <option [value]="chat.id">{{ getLinkedChatSelectLabel(chat) }}</option>
                 }
               </select>
+
+              @if (selectedLinkedChat(); as chat) {
+                <p class="selected-group-platform">Группа в <strong>{{ getLinkedChatPlatformLabel(chat) }}</strong></p>
+              }
             </div>
 
             @if (groupScheduleLoading()) {

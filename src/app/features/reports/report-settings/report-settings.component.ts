@@ -173,6 +173,14 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
   protected readonly linkedChatsLoading = signal<boolean>(false);
   protected readonly linkedChatsError = signal<string | null>(null);
   protected readonly selectedLinkedChatId = signal<number | null>(null);
+  protected readonly selectedLinkedChat = computed(() => {
+    const selectedId = this.selectedLinkedChatId();
+    if (!selectedId) {
+      return null;
+    }
+
+    return this.linkedChats().find(chat => chat.id === selectedId) ?? null;
+  });
   protected readonly groupScheduleLoading = signal<boolean>(false);
   protected readonly groupScheduleError = signal<string | null>(null);
   protected readonly existingGroupSchedule = signal<GroupSchedule | null>(null);
@@ -1122,6 +1130,36 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
       }
       this.groupScheduleLoading.set(false);
     });
+  }
+
+  protected getLinkedChatSelectLabel(chat: LinkedChat): string {
+    return `${chat.group_name} · ${this.getLinkedChatPlatformLabel(chat)}`;
+  }
+
+  protected getLinkedChatPlatformLabel(chat: LinkedChat | null): string {
+    return this.formatLinkedChatPlatform(chat?.platform);
+  }
+
+  private formatLinkedChatPlatform(platform: string | null | undefined): string {
+    const normalized = platform?.trim().toLowerCase();
+
+    if (normalized === 'max') {
+      return 'MAX';
+    }
+
+    if (normalized === 'telegram' || normalized === 'tg') {
+      return 'Telegram';
+    }
+
+    if (normalized === 'vk' || normalized === 'vkontakte' || normalized === 'вк' || normalized === 'вконтакте') {
+      return 'ВКонтакте';
+    }
+
+    if (normalized === 'email' || normalized === 'mail') {
+      return 'Email';
+    }
+
+    return platform?.trim() || 'Платформа не указана';
   }
 
   private parseGroupCronToForm(cron: string): void {

@@ -328,6 +328,30 @@ describe('ReportSettingsComponent', () => {
       });
     });
 
+    it('should include platform labels in linked chat group names', () => {
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      component = TestBed.createComponent(ReportSettingsComponent).componentInstance;
+
+      expect(component['getLinkedChatSelectLabel']({
+        id: 136,
+        group_name: 'Test olap',
+        is_active: true,
+        platform: 'max'
+      })).toBe('Test olap · MAX');
+      expect(component['getLinkedChatSelectLabel']({
+        id: 137,
+        group_name: 'Тест для ёлок',
+        is_active: true,
+        platform: 'telegram'
+      })).toBe('Тест для ёлок · Telegram');
+      expect(component['getLinkedChatSelectLabel']({
+        id: 135,
+        group_name: 'olap',
+        is_active: true,
+        platform: 'vk'
+      })).toBe('olap · ВКонтакте');
+    });
+
     it('should update schedule type when onScheduleTypeChange is called', (done) => {
       configureTestingModule({ reportId: '1', dbId: '10' });
       reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;

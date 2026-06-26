@@ -10,6 +10,7 @@ export interface LinkedChat {
   id: number;
   group_name: string;
   is_active: boolean;
+  platform?: string | null;
 }
 
 /**
