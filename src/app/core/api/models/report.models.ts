@@ -27,7 +27,7 @@ export interface CreateReportsRequest {
 export type ReportType = 'SALES' | 'STOCK' | 'TRANSACTIONS' | 'DELIVERIES';
 
 export type ScheduleType = 'trigger' | 'individual' | 'global' | null;
-export type DeliveryType = 'telegram' | 'email' | 'vk';
+export type DeliveryType = 'telegram' | 'email' | 'vk' | 'max';
 
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   SALES: 'OLAP по продажам',

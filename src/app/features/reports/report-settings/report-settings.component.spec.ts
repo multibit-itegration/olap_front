@@ -301,6 +301,33 @@ describe('ReportSettingsComponent', () => {
       });
     });
 
+    it('should send max delivery type when MAX is selected', (done) => {
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;
+      reportServiceSpy.getReport.and.returnValue(of(mockReport));
+      reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
+      reportServiceSpy.updateReport.and.returnValue(of({ ...mockReport, delivery_type: 'max' }));
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        const event = { target: { value: 'max' } } as any;
+        component['onDeliveryTypeChange'](event);
+
+        setTimeout(() => {
+          expect(component['selectedDeliveryType']()).toBe('max');
+          expect(reportServiceSpy.updateReport).toHaveBeenCalledWith(1, {
+            format: 'xlsx',
+            delivery_type: 'max',
+            schedule_type: 'individual'
+          });
+          done();
+        });
+      });
+    });
+
     it('should update schedule type when onScheduleTypeChange is called', (done) => {
       configureTestingModule({ reportId: '1', dbId: '10' });
       reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;

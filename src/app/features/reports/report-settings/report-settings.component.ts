@@ -197,7 +197,8 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
   protected readonly deliveryTypeOptions: ReadonlyArray<{ value: DeliveryType; label: string }> = [
     { value: 'telegram', label: 'Telegram' },
     { value: 'email', label: 'Email' },
-    { value: 'vk', label: 'ВКонтакте' }
+    { value: 'vk', label: 'ВКонтакте' },
+    { value: 'max', label: 'MAX' }
   ];
   protected readonly timezoneOptions = TIMEZONE_CHOICES;
   protected readonly weekdayOptions = [1, 2, 3, 4, 5, 6, 0].map(d => ({ value: d, label: WEEKDAY_LABELS[d] }));
@@ -1284,6 +1285,10 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
 
     if (normalized === 'email' || normalized === 'mail') {
       return 'email';
+    }
+
+    if (normalized === 'max') {
+      return 'max';
     }
 
     return this.defaultDeliveryType();

@@ -1,16 +1,19 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   OnDestroy,
   OnInit,
   inject,
   signal
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import bridge from '@vkontakte/vk-bridge';
-import { switchMap } from 'rxjs';
+import { switchMap, TimeoutError, timeout } from 'rxjs';
 import { AuthService } from '../../../core/api/auth.service';
+import { User } from '../../../core/api/models/user.models';
 
 interface VkLaunchParam {
   key: string;
@@ -28,6 +31,7 @@ interface VkLaunchParam {
 export class VkLaunchComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly rawLaunchParams = this.readLaunchParams();
   protected readonly vkParams = this.readVkParams();
@@ -51,6 +55,9 @@ export class VkLaunchComponent implements OnInit, OnDestroy {
   private vkPhraseTimer?: number;
 
   private readonly requiredParamKeys = ['vk_app_id', 'vk_user_id', 'sign'];
+  private readonly vkRequestTimeoutMs = 15000;
+  private readonly redirectFallbackTimeoutMs = 2500;
+  private redirectFallbackTimer?: number;
 
   protected readonly missingParamKeys = this.requiredParamKeys.filter((key) => {
     return !this.vkParams.some((param) => param.key === key && param.value.trim() !== '');
@@ -64,6 +71,7 @@ export class VkLaunchComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopVkPhraseRotation();
+    this.clearRedirectFallbackTimer();
   }
 
   private readLaunchParams(): string {
@@ -141,30 +149,70 @@ export class VkLaunchComponent implements OnInit, OnDestroy {
     this.authMessage.set('Входим через VK...');
 
     this.authService.vkAuth(this.rawLaunchParams).pipe(
-      switchMap(() => this.authService.loadCurrentUser())
+      timeout({ first: this.vkRequestTimeoutMs }),
+      switchMap(() => this.authService.loadCurrentUser().pipe(
+        timeout({ first: this.vkRequestTimeoutMs })
+      )),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (user) => {
         this.authStatus.set('success');
         this.authMessage.set('VK вход выполнен. Открываем кабинет...');
+        this.vkAuthPhrase.set('Открываем кабинет...');
         this.stopVkPhraseRotation();
-        this.router.navigate([user.role === 'admin' ? '/admin/dashboard' : '/user/databases']);
+        this.navigateByRole(user);
       },
-      error: (error: HttpErrorResponse) => {
-        this.authStatus.set('failed');
-        this.stopVkPhraseRotation();
-
-        switch (error.status) {
-          case 401:
-            this.authMessage.set('VK не подтвердил параметры запуска. Откройте приложение из VK.');
-            break;
-          case 404:
-            this.authMessage.set('Аккаунт VK не найден. Войдите по номеру телефона.');
-            break;
-          default:
-            this.authMessage.set('Не удалось войти через VK. Попробуйте позже или войдите по номеру телефона.');
-        }
-      }
+      error: (error: unknown) => this.handleVkAuthError(error)
     });
+  }
+
+  private handleVkAuthError(error: unknown): void {
+    this.authStatus.set('failed');
+    this.stopVkPhraseRotation();
+
+    if (error instanceof TimeoutError) {
+      this.authMessage.set('VK не ответил вовремя. Проверьте интернет и откройте приложение заново.');
+      return;
+    }
+
+    if (error instanceof HttpErrorResponse) {
+      switch (error.status) {
+        case 401:
+          this.authMessage.set('VK не подтвердил параметры запуска. Откройте приложение из VK.');
+          return;
+        case 404:
+          this.authMessage.set('Аккаунт VK не найден. Войдите по номеру телефона.');
+          return;
+      }
+    }
+
+    this.authMessage.set('Не удалось войти через VK. Попробуйте позже или войдите по номеру телефона.');
+  }
+
+  private navigateByRole(user: User): void {
+    const targetUrl = user.role === 'admin' ? '/admin/dashboard' : '/user/databases';
+    this.clearRedirectFallbackTimer();
+
+    this.redirectFallbackTimer = window.setTimeout(() => {
+      if (this.isStillOnVkLaunchRoute()) {
+        window.location.replace(targetUrl);
+      }
+    }, this.redirectFallbackTimeoutMs);
+
+    void this.router.navigate([targetUrl]).then((navigated) => {
+      this.clearRedirectFallbackTimer();
+
+      if (!navigated) {
+        window.location.replace(targetUrl);
+      }
+    }).catch(() => {
+      this.clearRedirectFallbackTimer();
+      window.location.replace(targetUrl);
+    });
+  }
+
+  private isStillOnVkLaunchRoute(): boolean {
+    return window.location.pathname.replace(/\/$/, '') === '/loginvk';
   }
 
   private startVkPhraseRotation(): void {
@@ -182,6 +230,13 @@ export class VkLaunchComponent implements OnInit, OnDestroy {
     if (this.vkPhraseTimer !== undefined) {
       clearInterval(this.vkPhraseTimer);
       this.vkPhraseTimer = undefined;
+    }
+  }
+
+  private clearRedirectFallbackTimer(): void {
+    if (this.redirectFallbackTimer !== undefined) {
+      clearTimeout(this.redirectFallbackTimer);
+      this.redirectFallbackTimer = undefined;
     }
   }
 }
