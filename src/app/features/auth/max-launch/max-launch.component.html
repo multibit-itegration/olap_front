@@ -1,0 +1,79 @@
+<main class="max-launch-page">
+  <section class="max-launch-panel">
+    <header class="max-launch-header">
+      <p class="max-launch-eyebrow">MAX Web App</p>
+      <h1 class="max-launch-title">Параметры авторизации</h1>
+      <p class="max-launch-description">
+        Сырые данные ниже нужны backend-разработчику для проверки подписи и тестирования авторизации.
+      </p>
+    </header>
+
+    <div class="max-launch-status" [class.ready]="bridgeStatus() === 'ready'" [class.warning]="bridgeStatus() === 'missing'" [class.failed]="bridgeStatus() === 'failed'">
+      {{ statusMessage() }}
+    </div>
+
+    <div class="max-launch-actions">
+      <button type="button" class="max-launch-secondary-button" (click)="refresh()">
+        Обновить данные
+      </button>
+      <a routerLink="/login" class="max-launch-secondary-link">Обычный вход</a>
+    </div>
+
+    <div class="max-launch-grid">
+      <section class="max-launch-block">
+        <div class="max-launch-block-header">
+          <h2>Raw initData</h2>
+          <button type="button" (click)="copy(initData())">Копировать</button>
+        </div>
+        <textarea readonly aria-label="MAX raw initData" [value]="initData()"></textarea>
+      </section>
+
+      <section class="max-launch-block">
+        <div class="max-launch-block-header">
+          <h2>JSON для backend</h2>
+          <button type="button" (click)="copy(backendPayload())">Копировать</button>
+        </div>
+        <textarea readonly aria-label="MAX backend payload" [value]="backendPayload()"></textarea>
+      </section>
+    </div>
+
+    @if (copyMessage()) {
+      <p class="max-launch-copy-message">{{ copyMessage() }}</p>
+    }
+
+    <div class="max-launch-grid">
+      <section class="max-launch-block">
+        <div class="max-launch-block-header">
+          <h2>initDataUnsafe</h2>
+          <button type="button" (click)="copy(initDataUnsafeJson())">Копировать</button>
+        </div>
+        <textarea readonly aria-label="MAX initDataUnsafe" [value]="initDataUnsafeJson()"></textarea>
+      </section>
+
+      <section class="max-launch-block">
+        <div class="max-launch-block-header">
+          <h2>WebApp info</h2>
+          <button type="button" (click)="copy(webAppInfoJson())">Копировать</button>
+        </div>
+        <textarea readonly aria-label="MAX WebApp info" [value]="webAppInfoJson()"></textarea>
+      </section>
+    </div>
+
+    <section class="max-launch-params">
+      <h2>Распознанные поля initData</h2>
+
+      @if (parsedInitData().length > 0) {
+        <dl>
+          @for (param of parsedInitData(); track param.key) {
+            <div class="max-launch-param-row">
+              <dt>{{ param.key }}</dt>
+              <dd>{{ param.value }}</dd>
+            </div>
+          }
+        </dl>
+      } @else {
+        <p class="max-launch-empty">Поля появятся после запуска страницы внутри MAX.</p>
+      }
+    </section>
+  </section>
+</main>

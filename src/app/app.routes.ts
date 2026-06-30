@@ -22,6 +22,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/vk-launch/vk-launch.component').then(m => m.VkLaunchComponent)
   },
   {
+    path: 'loginmax',
+    loadComponent: () => import('./features/auth/max-launch/max-launch.component').then(m => m.MaxLaunchComponent)
+  },
+  {
     path: 'reg',
     loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
   },
