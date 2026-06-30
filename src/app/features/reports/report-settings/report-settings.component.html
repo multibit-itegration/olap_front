@@ -288,6 +288,7 @@
               class="checkbox-input"
               [checked]="sendToGroups()"
               (change)="onSendToGroupsChange($event)"
+              [disabled]="groupScheduleSaving()"
             />
             <span class="checkbox-text">Рассылать в группы</span>
           </label>

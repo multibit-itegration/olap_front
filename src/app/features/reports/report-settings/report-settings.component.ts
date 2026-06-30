@@ -18,7 +18,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, EMPTY, of } from 'rxjs';
+import { catchError, EMPTY, forkJoin, map, of } from 'rxjs';
 import { ReportService } from '../../../core/api/report.service';
 import { AuthService } from '../../../core/api/auth.service';
 import { LicenseService } from '../../../core/api/license.service';
@@ -236,6 +236,7 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
   private updateStructureButton?: ElementRef<HTMLButtonElement>;
 
   private lastHandledOnboardingActivation = 0;
+  private groupScheduleTouchedByUser = false;
 
   private readonly onboardingTargetEffect = effect(() => {
     if (!this.onboarding.active()) {
@@ -372,9 +373,11 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
         // Use user-specific default delivery type if report has none
         this.selectedDeliveryType.set(this.normalizeDeliveryType(report.delivery_type));
         this.selectedScheduleType.set(report.schedule_type);
+        this.groupScheduleTouchedByUser = false;
         this.loading.set(false);
         this.openReportSettingsOnboardingAfterLoad();
         this.scheduleCurrentOnboardingTargetUpdate();
+        this.loadLinkedChats({ restoreExistingGroupSchedule: true });
 
         // Load individual schedule if schedule_type is 'individual'
         if (report.schedule_type === 'individual') {
@@ -1051,36 +1054,82 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
   protected onSendToGroupsChange(event: Event): void {
     const checkbox = event.target as HTMLInputElement;
     const isChecked = checkbox.checked;
-    this.sendToGroups.set(isChecked);
+    this.groupScheduleTouchedByUser = true;
 
     if (isChecked) {
+      this.sendToGroups.set(true);
       this.loadLinkedChats();
     } else {
-      this.selectedLinkedChatId.set(null);
-      this.existingGroupSchedule.set(null);
+      this.disableSelectedGroupSchedule();
     }
   }
 
-  private loadLinkedChats(): void {
-    const userId = this.userId() ?? this.authService.currentUser()?.id;
-    if (!userId) {
-      this.linkedChatsError.set('Пользователь не найден');
+  private disableSelectedGroupSchedule(): void {
+    const linkedChatId = this.selectedLinkedChatId();
+    const existingSchedule = this.existingGroupSchedule();
+
+    this.sendToGroups.set(false);
+
+    if (!linkedChatId || !existingSchedule) {
+      this.selectedLinkedChatId.set(null);
+      this.existingGroupSchedule.set(null);
       return;
     }
 
-    this.linkedChatsLoading.set(true);
-    this.linkedChatsError.set(null);
+    this.groupScheduleSaving.set(true);
+    this.groupScheduleError.set(null);
+
+    this.reportService.updateGroupSchedule(this.reportId(), linkedChatId, { is_active: false }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError((err: HttpErrorResponse) => {
+        this.sendToGroups.set(true);
+        this.selectedLinkedChatId.set(linkedChatId);
+        this.existingGroupSchedule.set(existingSchedule);
+        this.groupScheduleError.set('Не удалось отключить расписание для группы');
+        this.groupScheduleSaving.set(false);
+        return EMPTY;
+      })
+    ).subscribe(() => {
+      this.selectedLinkedChatId.set(null);
+      this.existingGroupSchedule.set(null);
+      this.groupScheduleSaving.set(false);
+    });
+  }
+
+  private loadLinkedChats(options: { restoreExistingGroupSchedule?: boolean } = {}): void {
+    const userId = this.userId() ?? this.authService.currentUser()?.id;
+    const restoreExistingGroupSchedule = options.restoreExistingGroupSchedule === true;
+
+    if (!userId) {
+      if (!restoreExistingGroupSchedule) {
+        this.linkedChatsError.set('Пользователь не найден');
+      }
+      return;
+    }
+
+    if (!restoreExistingGroupSchedule) {
+      this.linkedChatsLoading.set(true);
+      this.linkedChatsError.set(null);
+    }
 
     this.linkedChatsService.getLinkedChats(userId).pipe(
       takeUntilDestroyed(this.destroyRef),
       catchError((err: HttpErrorResponse) => {
-        this.linkedChatsError.set('Не удалось загрузить список групп');
-        this.linkedChatsLoading.set(false);
+        if (!restoreExistingGroupSchedule) {
+          this.linkedChatsError.set('Не удалось загрузить список групп');
+          this.linkedChatsLoading.set(false);
+        }
         return of([]);
       })
     ).subscribe(chats => {
       const activeChats = chats.filter(chat => chat.is_active);
       this.linkedChats.set(activeChats);
+
+      if (restoreExistingGroupSchedule) {
+        this.restoreExistingGroupSchedule(activeChats);
+        return;
+      }
+
       this.linkedChatsLoading.set(false);
 
       if (activeChats.length > 0 && !this.selectedLinkedChatId()) {
@@ -1120,16 +1169,49 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
       })
     ).subscribe(schedule => {
       if (schedule) {
-        this.existingGroupSchedule.set(schedule);
-        this.parseGroupCronToForm(schedule.group_cron);
-        const matchedTimezone = TIMEZONE_CHOICES.find(
-          tz => tz.value.toLowerCase() === schedule.timezone.toLowerCase()
-        );
-        this.groupTimezone.set(matchedTimezone?.value ?? 'Europe/Moscow');
-        this.groupDataPeriod.set(schedule.data_period_days);
+        this.applyGroupSchedule(schedule);
       }
       this.groupScheduleLoading.set(false);
     });
+  }
+
+  private restoreExistingGroupSchedule(activeChats: LinkedChat[]): void {
+    if (activeChats.length === 0 || this.groupScheduleTouchedByUser) {
+      return;
+    }
+
+    forkJoin(activeChats.map(chat => this.reportService.getGroupSchedule(this.reportId(), chat.id).pipe(
+      map(schedule => ({ chat, schedule })),
+      catchError(() => of(null))
+    ))).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(results => {
+      if (this.groupScheduleTouchedByUser) {
+        return;
+      }
+
+      const matched = results.find((item): item is { chat: LinkedChat; schedule: GroupSchedule } => {
+        return item !== null && item.schedule.is_active !== false;
+      });
+
+      if (!matched) {
+        return;
+      }
+
+      this.sendToGroups.set(true);
+      this.selectedLinkedChatId.set(matched.chat.id);
+      this.applyGroupSchedule(matched.schedule);
+    });
+  }
+
+  private applyGroupSchedule(schedule: GroupSchedule): void {
+    this.existingGroupSchedule.set(schedule);
+    this.parseGroupCronToForm(schedule.group_cron);
+    const matchedTimezone = TIMEZONE_CHOICES.find(
+      tz => tz.value.toLowerCase() === schedule.timezone.toLowerCase()
+    );
+    this.groupTimezone.set(matchedTimezone?.value ?? 'Europe/Moscow');
+    this.groupDataPeriod.set(schedule.data_period_days);
   }
 
   protected getLinkedChatSelectLabel(chat: LinkedChat): string {
@@ -1245,7 +1327,8 @@ export class ReportSettingsComponent implements OnInit, AfterViewInit, OnDestroy
       ? this.reportService.updateGroupSchedule(this.reportId(), linkedChatId, {
           group_cron: cron,
           timezone: this.groupTimezone(),
-          data_period_days: this.groupDataPeriod()
+          data_period_days: this.groupDataPeriod(),
+          is_active: true
         })
       : this.reportService.createGroupSchedule(this.reportId(), linkedChatId, {
           group_cron: cron,

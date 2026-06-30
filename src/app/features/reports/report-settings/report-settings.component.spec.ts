@@ -11,7 +11,7 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Report, IndividualSchedule, GlobalSchedule } from '../../../core/api/models/report.models';
+import { Report, IndividualSchedule, GlobalSchedule, GroupSchedule } from '../../../core/api/models/report.models';
 import { User } from '../../../core/api/models/user.models';
 import { License } from '../../../core/api/models/license.models';
 
@@ -93,6 +93,18 @@ describe('ReportSettingsComponent', () => {
     next_run_at: '2026-03-20T13:00:00Z'
   };
 
+  const mockGroupSchedule: GroupSchedule = {
+    id: 10,
+    linked_chat_id: 136,
+    report_id: 1,
+    chat_title: 'Test olap',
+    group_cron: '45 16 * * *',
+    timezone: 'Europe/Moscow',
+    next_run_at: '2026-03-20T16:45:00Z',
+    data_period_days: 14,
+    is_active: true
+  };
+
   function configureTestingModule(routeParams: { [key: string]: string }, url: string = '/user/databases/10/reports/1') {
     const reportSpy = jasmine.createSpyObj('ReportService', [
       'getReport',
@@ -118,6 +130,7 @@ describe('ReportSettingsComponent', () => {
     licenseSpy.hasProAccess.and.callFake((license: License | null) => license?.plan === 'Pro');
     reportSpy.getGlobalSchedule.and.returnValue(of(mockGlobalSchedule));
     const linkedChatsSpy = jasmine.createSpyObj('LinkedChatsService', ['getLinkedChats', 'updateLinkedChat']);
+    linkedChatsSpy.getLinkedChats.and.returnValue(of([]));
     const routerSpyObj = jasmine.createSpyObj('Router', ['navigate'], { url });
 
     TestBed.configureTestingModule({
@@ -241,6 +254,99 @@ describe('ReportSettingsComponent', () => {
         expect(reportServiceSpy.getIndividualSchedule).toHaveBeenCalledWith(1);
         expect(component['existingIndividualSchedule']()).toEqual(mockIndividualSchedule);
         done();
+      }, 100);
+    });
+
+    it('should restore group delivery state when an active group schedule exists', (done) => {
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;
+      linkedChatsServiceSpy = TestBed.inject(LinkedChatsService) as jasmine.SpyObj<LinkedChatsService>;
+      reportServiceSpy.getReport.and.returnValue(of(mockReport));
+      reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
+      linkedChatsServiceSpy.getLinkedChats.and.returnValue(of([
+        { id: 135, group_name: 'olap', is_active: true, platform: 'vk' },
+        { id: 136, group_name: 'Test olap', is_active: true, platform: 'max' }
+      ]));
+      reportServiceSpy.getGroupSchedule.and.callFake((reportId: number, linkedChatId: number) => {
+        return linkedChatId === 136
+          ? of(mockGroupSchedule)
+          : throwError(() => new HttpErrorResponse({ status: 404, statusText: 'Not Found' }));
+      });
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(component['sendToGroups']()).toBeTrue();
+        expect(component['selectedLinkedChatId']()).toBe(136);
+        expect(component['existingGroupSchedule']()).toEqual(mockGroupSchedule);
+        expect(component['groupTime']()).toBe('16:45');
+        expect(component['groupDataPeriod']()).toBe(14);
+        done();
+      }, 100);
+    });
+
+    it('should deactivate existing group schedule when group delivery is unchecked', (done) => {
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;
+      reportServiceSpy.getReport.and.returnValue(of(mockReport));
+      reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
+      reportServiceSpy.updateGroupSchedule.and.returnValue(of({ ...mockGroupSchedule, is_active: false }));
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        component['sendToGroups'].set(true);
+        component['selectedLinkedChatId'].set(136);
+        component['existingGroupSchedule'].set(mockGroupSchedule);
+        component['onSendToGroupsChange']({ target: { checked: false } } as unknown as Event);
+
+        setTimeout(() => {
+          expect(reportServiceSpy.updateGroupSchedule).toHaveBeenCalledWith(1, 136, {
+            is_active: false
+          });
+          expect(component['sendToGroups']()).toBeFalse();
+          expect(component['selectedLinkedChatId']()).toBeNull();
+          expect(component['existingGroupSchedule']()).toBeNull();
+          expect(component['groupScheduleSaving']()).toBeFalse();
+          done();
+        });
+      }, 100);
+    });
+
+    it('should reactivate existing group schedule when saving group settings', (done) => {
+      configureTestingModule({ reportId: '1', dbId: '10' });
+      reportServiceSpy = TestBed.inject(ReportService) as jasmine.SpyObj<ReportService>;
+      reportServiceSpy.getReport.and.returnValue(of(mockReport));
+      reportServiceSpy.getIndividualSchedule.and.returnValue(of(mockIndividualSchedule));
+      reportServiceSpy.updateGroupSchedule.and.returnValue(of({ ...mockGroupSchedule, is_active: true }));
+
+      fixture = TestBed.createComponent(ReportSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        component['sendToGroups'].set(true);
+        component['selectedLinkedChatId'].set(136);
+        component['existingGroupSchedule'].set({ ...mockGroupSchedule, is_active: false });
+        component['groupTime'].set('16:45');
+        component['groupTimezone'].set('Europe/Moscow');
+        component['groupDataPeriod'].set(14);
+        component['saveGroupSchedule']();
+
+        setTimeout(() => {
+          expect(reportServiceSpy.updateGroupSchedule).toHaveBeenCalledWith(1, 136, {
+            group_cron: '45 16 * * *',
+            timezone: 'Europe/Moscow',
+            data_period_days: 14,
+            is_active: true
+          });
+          expect(component['groupScheduleSaving']()).toBeFalse();
+          done();
+        });
       }, 100);
     });
 
