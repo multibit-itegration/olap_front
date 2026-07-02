@@ -12,6 +12,13 @@
       {{ statusMessage() }}
     </div>
 
+    <div class="max-launch-source">
+      <span>Источник JSON для backend: <strong>{{ initDataSource() }}</strong></span>
+      @if (missingImportantFields().length > 0) {
+        <span>Не хватает: <strong>{{ missingImportantFieldsLabel() }}</strong></span>
+      }
+    </div>
+
     <div class="max-launch-actions">
       <button type="button" class="max-launch-secondary-button" (click)="refresh()">
         Обновить данные
@@ -22,10 +29,10 @@
     <div class="max-launch-grid">
       <section class="max-launch-block">
         <div class="max-launch-block-header">
-          <h2>Raw initData</h2>
+          <h2>Backend initData</h2>
           <button type="button" (click)="copy(initData())">Копировать</button>
         </div>
-        <textarea readonly aria-label="MAX raw initData" [value]="initData()"></textarea>
+        <textarea readonly aria-label="MAX backend initData" [value]="initData()"></textarea>
       </section>
 
       <section class="max-launch-block">
@@ -44,12 +51,22 @@
     <div class="max-launch-grid">
       <section class="max-launch-block">
         <div class="max-launch-block-header">
+          <h2>window.WebApp.initData</h2>
+          <button type="button" (click)="copy(bridgeInitData())">Копировать</button>
+        </div>
+        <textarea readonly aria-label="MAX bridge initData" [value]="bridgeInitData()"></textarea>
+      </section>
+
+      <section class="max-launch-block">
+        <div class="max-launch-block-header">
           <h2>initDataUnsafe</h2>
           <button type="button" (click)="copy(initDataUnsafeJson())">Копировать</button>
         </div>
         <textarea readonly aria-label="MAX initDataUnsafe" [value]="initDataUnsafeJson()"></textarea>
       </section>
+    </div>
 
+    <div class="max-launch-grid">
       <section class="max-launch-block">
         <div class="max-launch-block-header">
           <h2>WebApp info</h2>
@@ -57,10 +74,18 @@
         </div>
         <textarea readonly aria-label="MAX WebApp info" [value]="webAppInfoJson()"></textarea>
       </section>
+
+      <section class="max-launch-block">
+        <div class="max-launch-block-header">
+          <h2>URL/hash diagnostics</h2>
+          <button type="button" (click)="copy(launchDiagnosticsJson())">Копировать</button>
+        </div>
+        <textarea readonly aria-label="MAX launch diagnostics" [value]="launchDiagnosticsJson()"></textarea>
+      </section>
     </div>
 
     <section class="max-launch-params">
-      <h2>Распознанные поля initData</h2>
+      <h2>Распознанные поля backend initData</h2>
 
       @if (parsedInitData().length > 0) {
         <dl>

@@ -29,6 +29,7 @@
 .max-launch-eyebrow,
 .max-launch-title,
 .max-launch-description,
+.max-launch-source,
 .max-launch-copy-message,
 .max-launch-empty {
   margin: 0;
@@ -84,6 +85,18 @@
 .max-launch-status.failed {
   border-color: rgba(255, 143, 143, 0.72);
   background: rgba(126, 28, 42, 0.3);
+}
+
+.max-launch-source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-bottom: 14px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .max-launch-actions {
